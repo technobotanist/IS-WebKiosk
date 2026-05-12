@@ -1,0 +1,42 @@
+{
+  "id": "innovation-studio",
+  "title": "Innovation Studio",
+  "subtitle": "Exhibition Space",
+  "introText": "The Innovation Studio is an exhibition space for sharing student work with a broader audience, as either ongoing exhibits or one-time events. Our interactive projection tables can display digital media, including text, video, and audio, and can incorporate physical or interactive creations.",
+  "gallerySlug": "innovation-studio",
+  "theme": {
+    "backgroundTop": "#fbfdff",
+    "backgroundMid": "#edf4fb",
+    "backgroundBottom": "#d3e2fc",
+    "cloudOne": "#c73523",
+    "cloudTwo": "#2ca5bd"
+  },
+  "idleTimeoutSeconds": 120,
+  "escapeHotkeys": ["Escape", "Control+Shift+H"],
+  "entries": [
+    {
+      "id": "entry-ongoing-exhibits",
+      "title": "Ongoing Exhibits",
+      "author": "Course Collaborations",
+      "description": "Flexible installations for student work that can combine digital media, physical material, and interactive elements for a broad public audience.",
+      "destinationUrl": "https://example.com/innovation-studio/ongoing-exhibits",
+      "qrImageUrl": "/qr/innovation-studio-exhibits.svg"
+    },
+    {
+      "id": "entry-exhibiting-guide",
+      "title": "Exhibiting Guide",
+      "author": "Student Exhibit Support",
+      "description": "Reference material for shaping exhibit content, understanding audience, and planning how text, video, audio, and group work can live in the space.",
+      "destinationUrl": "https://example.com/innovation-studio/exhibiting-guide",
+      "qrImageUrl": "/qr/innovation-studio-guide.svg"
+    },
+    {
+      "id": "entry-showcase-events",
+      "title": "Showcase Events",
+      "author": "Open Audience Presentations",
+      "description": "End-of-semester events can mix slide talks, analog table displays, interactive exhibits, screenings, and other formats depending on your goals.",
+      "destinationUrl": "https://example.com/innovation-studio/showcase-events",
+      "qrImageUrl": "/qr/innovation-studio-events.svg"
+    }
+  ]
+}
