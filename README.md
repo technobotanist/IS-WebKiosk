@@ -27,6 +27,12 @@ Build for production:
 npm run build
 ```
 
+## GitHub Pages deploy
+
+This repo now includes a GitHub Actions workflow that builds the app and publishes `dist` to GitHub Pages on every push to `main`.
+
+In the repository's GitHub Pages settings, set the source to `GitHub Actions`. If Pages is set to deploy directly from the branch, GitHub will serve the raw source `index.html`, which requests `/src/main.tsx` and renders a blank page.
+
 ## Runtime sample data
 
 The default sample collection lives in `public/data/collection.json`.
