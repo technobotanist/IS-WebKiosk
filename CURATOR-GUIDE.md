@@ -12,6 +12,7 @@ Each card can include:
 - An author name
 - A public destination URL
 - A preview image URL
+- An optional QR code toggle
 - A QR image URL
 - A short description
 
@@ -20,6 +21,7 @@ The app also stores:
 - Idle reset timing
 - Return hotkeys
 - Backdrop colors
+- Gallery appearance controls such as launch button color and text scale
 - Import and export data for handoff between workstations
 
 ## Start Here
@@ -59,6 +61,14 @@ The studio has two main working areas:
 - `Collection Editor` at the top, which shows the gallery header content you are editing and gives quick access to collection controls.
 - `Gallery cards`, which is the main work surface for selecting, editing, removing, and previewing cards.
 
+The `Collection Editor` panel also includes live gallery appearance controls for:
+
+- Launch button color
+- Gallery title size
+- Intro text size
+- Card title size
+- Card body size
+
 Card rows show `Click to edit` or `Selected for editing` to indicate which card is active.
 
 ## Update A Gallery
@@ -67,7 +77,7 @@ Card rows show `Click to edit` or `Selected for editing` to indicate which card 
 2. Work from the `Gallery cards` panel.
 3. Select an existing card from the list, or choose `Add Card`.
 4. Use `Edit` to open the card editor.
-5. Edit the card fields, including an optional preview image URL for gallery cards.
+5. Edit the card fields, including an optional preview image URL and the QR code checkbox for gallery cards.
 6. Use `Preview In Kiosk` from the `Gallery cards` panel or the card editor to test the live destination inside the kiosk frame.
 7. Use `Done Editing` to close the card editor.
 
@@ -76,7 +86,8 @@ Default values for a new card:
 - Title: `Exhibit #n`
 - Author: `Jane Doe`
 - Destination URL: `https://go.ncsu.edu/innovation-studio-news`
-- QR image URL: `https://go.ncsu.edu/innovation-studio-news.qr`
+- QR code: Off
+- QR image URL: empty until you turn QR on for that card
 - Description:
 
 ```text
@@ -91,9 +102,9 @@ Use `Collection Settings` to manage:
 - Collection title and subtitle
 - Gallery slug
 - Intro text
+- Backdrop gradient colors
 - Idle reset seconds
 - Return hotkeys
-- Backdrop colors
 
 The `Collection Editor` card also gives direct access to:
 
@@ -120,7 +131,7 @@ In gallery mode:
 
 - Visitors see the collection grid.
 - Selecting a card opens the destination URL inside the kiosk viewer.
-- The viewer shows the QR code and card description beside the live page.
+- The viewer shows the card description beside the live page and only shows a QR code when that card's QR checkbox is enabled.
 - Idle reset closes the active page and returns to the gallery grid.
 - Return hotkeys also send the session back to the gallery grid.
 
@@ -129,7 +140,7 @@ In gallery mode:
 Before opening the kiosk to visitors:
 
 1. Confirm each card has the correct public URL.
-2. Confirm each card has the correct QR image.
+2. Confirm QR is enabled only on cards that should show a code, and confirm those cards have the correct QR image.
 3. Use `Preview In Kiosk` on any changed card.
 4. Confirm idle reset timing and return hotkeys.
 5. Export the collection after major updates.

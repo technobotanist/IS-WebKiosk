@@ -9,7 +9,12 @@
     "backgroundMid": "#edf4fb",
     "backgroundBottom": "#d3e2fc",
     "cloudOne": "#c73523",
-    "cloudTwo": "#2ca5bd"
+    "cloudTwo": "#2ca5bd",
+    "launchButtonColor": "#c73523",
+    "galleryTitleScale": 100,
+    "galleryIntroScale": 100,
+    "cardTitleScale": 100,
+    "cardBodyScale": 100
   },
   "idleTimeoutSeconds": 120,
   "escapeHotkeys": ["Escape", "Control+Shift+H"],
@@ -20,6 +25,7 @@
       "author": "Course Collaborations",
       "description": "Flexible installations for student work that can combine digital media, physical material, and interactive elements for a broad public audience.",
       "destinationUrl": "https://example.com/innovation-studio/ongoing-exhibits",
+      "showQrCode": false,
       "qrImageUrl": "qr/innovation-studio-exhibits.svg",
       "previewImageUrl": "thumbnails/innovation-studio-exhibits.svg"
     },
@@ -29,6 +35,7 @@
       "author": "Student Exhibit Support",
       "description": "Reference material for shaping exhibit content, understanding audience, and planning how text, video, audio, and group work can live in the space.",
       "destinationUrl": "https://example.com/innovation-studio/exhibiting-guide",
+      "showQrCode": false,
       "qrImageUrl": "qr/innovation-studio-guide.svg",
       "previewImageUrl": "thumbnails/innovation-studio-guide.svg"
     },
@@ -38,6 +45,7 @@
       "author": "Open Audience Presentations",
       "description": "End-of-semester events can mix slide talks, analog table displays, interactive exhibits, screenings, and other formats depending on your goals.",
       "destinationUrl": "https://example.com/innovation-studio/showcase-events",
+      "showQrCode": false,
       "qrImageUrl": "qr/innovation-studio-events.svg",
       "previewImageUrl": "thumbnails/innovation-studio-events.svg"
     }

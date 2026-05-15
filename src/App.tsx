@@ -49,7 +49,12 @@ const defaultTheme: CollectionTheme = {
   backgroundMid: '#edf4fb',
   backgroundBottom: '#d3e2fc',
   cloudOne: '#c73523',
-  cloudTwo: '#2ca5bd'
+  cloudTwo: '#2ca5bd',
+  launchButtonColor: '#c73523',
+  galleryTitleScale: 100,
+  galleryIntroScale: 100,
+  cardTitleScale: 100,
+  cardBodyScale: 100
 };
 
 const studioHeroLabel = 'Innovation Studio Kiosks';
@@ -63,7 +68,7 @@ const studioWorkflowNote =
   'Use this studio to build kiosk cards around a public URL, a QR destination, and short curator-facing copy so staff can verify what each machine will launch.';
 
 const studioDeliveryNote =
-  'Each collection stores card content, idle reset timing, return hotkeys, and backdrop settings together so the same gallery can be restored or exported to another workstation.';
+  'Each collection stores card content, idle reset timing, return hotkeys, backdrop settings, and gallery appearance controls together so the same gallery can be restored or exported to another workstation.';
 
 const defaultGalleryIntro =
   'The Innovation Studio is an exhibition space for sharing student work with a broader audience, as either ongoing exhibits or one-time events. Our interactive projection tables can display digital media, including text, video, and audio, and can incorporate physical or interactive creations.';
@@ -88,6 +93,7 @@ const fallbackCollectionSeed: CollectionDraft = {
       description:
         'Flexible installations for student work that can combine digital media, physical material, and interactive elements for a broad public audience.',
       destinationUrl: 'https://example.com/innovation-studio/ongoing-exhibits',
+      showQrCode: false,
       qrImageUrl: 'qr/innovation-studio-exhibits.svg',
       previewImageUrl: 'thumbnails/innovation-studio-exhibits.svg'
     },
@@ -98,6 +104,7 @@ const fallbackCollectionSeed: CollectionDraft = {
       description:
         'Reference material for shaping exhibit content, understanding audience, and planning how text, video, audio, and group work can live in the space.',
       destinationUrl: 'https://example.com/innovation-studio/exhibiting-guide',
+      showQrCode: false,
       qrImageUrl: 'qr/innovation-studio-guide.svg',
       previewImageUrl: 'thumbnails/innovation-studio-guide.svg'
     },
@@ -108,6 +115,7 @@ const fallbackCollectionSeed: CollectionDraft = {
       description:
         'End-of-semester events can mix slide talks, analog table displays, interactive exhibits, screenings, and other formats depending on your goals.',
       destinationUrl: 'https://example.com/innovation-studio/showcase-events',
+      showQrCode: false,
       qrImageUrl: 'qr/innovation-studio-events.svg',
       previewImageUrl: 'thumbnails/innovation-studio-events.svg'
     }
@@ -143,6 +151,10 @@ function readString(value: unknown, fallback = '') {
   return typeof value === 'string' ? value : fallback;
 }
 
+function readBoolean(value: unknown, fallback = false) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
 function clampNumber(value: unknown, min: number, max: number, fallback: number) {
   const nextValue = Number(value);
 
@@ -170,7 +182,12 @@ function normalizeTheme(value: unknown): CollectionTheme {
     backgroundMid: normalizeHexColor(value.backgroundMid, defaultTheme.backgroundMid),
     backgroundBottom: normalizeHexColor(value.backgroundBottom, defaultTheme.backgroundBottom),
     cloudOne: normalizeHexColor(value.cloudOne, defaultTheme.cloudOne),
-    cloudTwo: normalizeHexColor(value.cloudTwo, defaultTheme.cloudTwo)
+    cloudTwo: normalizeHexColor(value.cloudTwo, defaultTheme.cloudTwo),
+    launchButtonColor: normalizeHexColor(value.launchButtonColor, defaultTheme.launchButtonColor),
+    galleryTitleScale: clampNumber(value.galleryTitleScale, 85, 140, defaultTheme.galleryTitleScale),
+    galleryIntroScale: clampNumber(value.galleryIntroScale, 85, 140, defaultTheme.galleryIntroScale),
+    cardTitleScale: clampNumber(value.cardTitleScale, 85, 140, defaultTheme.cardTitleScale),
+    cardBodyScale: clampNumber(value.cardBodyScale, 85, 140, defaultTheme.cardBodyScale)
   };
 }
 
@@ -180,6 +197,16 @@ function hexToRgba(hexColor: string, alpha: number) {
   const green = Number.parseInt(cleanHex.slice(2, 4), 16);
   const blue = Number.parseInt(cleanHex.slice(4, 6), 16);
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function getReadableTextColor(hexColor: string) {
+  const cleanHex = hexColor.replace('#', '');
+  const red = Number.parseInt(cleanHex.slice(0, 2), 16);
+  const green = Number.parseInt(cleanHex.slice(2, 4), 16);
+  const blue = Number.parseInt(cleanHex.slice(4, 6), 16);
+  const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+  return luminance > 0.64 ? '#092933' : '#ffffff';
 }
 
 function slugify(value: string) {
@@ -314,6 +341,7 @@ function createBlankEntry(index: number, seed?: Partial<CollectionEntry>): Colle
     author: seed?.author ?? '',
     description: seed?.description ?? '',
     destinationUrl: seed?.destinationUrl ?? '',
+    showQrCode: seed?.showQrCode ?? false,
     qrImageUrl: seed?.qrImageUrl ?? '',
     previewImageUrl: seed?.previewImageUrl ?? ''
   };
@@ -325,7 +353,8 @@ function createEntry(index: number, seed?: Partial<CollectionEntry>): Collection
     author: 'Jane Doe',
     description: defaultNewEntryDescription,
     destinationUrl: 'https://go.ncsu.edu/innovation-studio-news',
-    qrImageUrl: 'https://go.ncsu.edu/innovation-studio-news.qr',
+    showQrCode: false,
+    qrImageUrl: '',
     ...seed
   });
 }
@@ -341,9 +370,14 @@ function normalizeEntry(value: unknown, index: number): CollectionEntry {
     author: readString(value.author),
     description: readString(value.description),
     destinationUrl: readString(value.destinationUrl),
+    showQrCode: readBoolean(value.showQrCode),
     qrImageUrl: readString(value.qrImageUrl),
     previewImageUrl: readString(value.previewImageUrl)
   });
+}
+
+function shouldRenderQrCode(entry: Pick<CollectionEntry, 'showQrCode' | 'qrImageUrl'>) {
+  return readBoolean(entry.showQrCode) && readString(entry.qrImageUrl).trim().length > 0;
 }
 
 function normalizeCollection(value: unknown): CollectionDraft {
@@ -393,7 +427,14 @@ function createThemeStyle(theme: CollectionTheme): CSSProperties {
     '--theme-cloud-one-soft': hexToRgba(theme.cloudOne, 0.18),
     '--theme-cloud-two-soft': hexToRgba(theme.cloudTwo, 0.22),
     '--theme-halo-one': hexToRgba(theme.cloudOne, 0.24),
-    '--theme-halo-two': hexToRgba(theme.cloudTwo, 0.28)
+    '--theme-halo-two': hexToRgba(theme.cloudTwo, 0.28),
+    '--theme-launch-button-color': theme.launchButtonColor,
+    '--theme-launch-button-text': getReadableTextColor(theme.launchButtonColor),
+    '--theme-launch-button-shadow': hexToRgba(theme.launchButtonColor, 0.24),
+    '--theme-gallery-title-scale': String(theme.galleryTitleScale / 100),
+    '--theme-gallery-intro-scale': String(theme.galleryIntroScale / 100),
+    '--theme-card-title-scale': String(theme.cardTitleScale / 100),
+    '--theme-card-body-scale': String(theme.cardBodyScale / 100)
   } as CSSProperties;
 }
 
@@ -794,6 +835,22 @@ function App() {
     });
   }
 
+  function updateThemeField<K extends keyof CollectionTheme>(field: K, value: CollectionTheme[K]) {
+    setCollection((currentCollection) => {
+      if (!currentCollection) {
+        return currentCollection;
+      }
+
+      return {
+        ...currentCollection,
+        theme: {
+          ...currentCollection.theme,
+          [field]: value
+        }
+      };
+    });
+  }
+
   function updateEntryField<K extends keyof CollectionEntry>(
     entryId: string,
     field: K,
@@ -1037,6 +1094,7 @@ function App() {
           <div className="studio-hero-aside">
             <CollectionProfileCard
               collection={collection}
+              onUpdateThemeField={updateThemeField}
               onOpenDetails={() => openCollectionSettings('details')}
               onOpenBackdrop={() => openCollectionSettings('backdrop')}
               onOpenKiosk={() => openCollectionSettings('kiosk')}
@@ -1178,7 +1236,7 @@ function App() {
               </div>
 
               <aside className="viewer-sidepanel">
-                <QrPreview src={activeEntry.qrImageUrl} alt={`${activeEntry.title} QR code`} />
+                {shouldRenderQrCode(activeEntry) ? <QrPreview src={activeEntry.qrImageUrl} alt={`${activeEntry.title} QR code`} /> : null}
                 <section className="viewer-copy">
                   <p className="micro-label">Author</p>
                   <h4>{activeEntry.author || 'Author name'}</h4>
@@ -1488,11 +1546,26 @@ function App() {
               </label>
 
               <label className="field field-span-full">
+                <span className="field-toggle-row">
+                  <span className="field-toggle-copy">
+                    <span>Show QR code on this exhibit</span>
+                    <small>Disabled by default. Turn this on only for cards that should display a QR image.</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={readBoolean(selectedEntry.showQrCode)}
+                    onChange={(event) => updateEntryField(selectedEntry.id, 'showQrCode', event.target.checked)}
+                  />
+                </span>
+              </label>
+
+              <label className="field field-span-full">
                 <span>QR image URL</span>
                 <input
-                  value={selectedEntry.qrImageUrl}
+                  value={readString(selectedEntry.qrImageUrl)}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'qrImageUrl', event.target.value)}
                   placeholder="QR image URL"
+                  disabled={!readBoolean(selectedEntry.showQrCode)}
                 />
               </label>
 
@@ -1554,7 +1627,9 @@ function EntryListItem({ entry, index, isActive, onSelect, onRemove }: EntryList
           <div className="entry-list-footer">
             <div className="entry-list-meta">
               <span className="entry-meta-pill">{entry.destinationUrl.trim() ? 'Launch ready' : 'Needs URL'}</span>
-              <span className="entry-meta-pill">{entry.qrImageUrl.trim() ? 'QR linked' : 'QR pending'}</span>
+              <span className="entry-meta-pill">
+                {readBoolean(entry.showQrCode) ? (readString(entry.qrImageUrl).trim() ? 'QR on' : 'QR needs image') : 'QR off'}
+              </span>
               <span className="entry-meta-pill">{readString(entry.previewImageUrl).trim() ? 'Preview image' : 'No image'}</span>
             </div>
             <span className="entry-action-cue">{isActive ? 'Selected for editing' : 'Click to edit'}</span>
@@ -1592,10 +1667,12 @@ function GalleryCardContent({ entry, subtitle }: GalleryCardContentProps) {
       </div>
 
       <div className="gallery-card-footer">
-        <span className="glass-badge">Launch page</span>
-        <div className="gallery-card-qr">
-          <QrPreview src={entry.qrImageUrl} alt={`${entry.title} QR code`} compact />
-        </div>
+        <span className="gallery-launch-button">Launch page</span>
+        {shouldRenderQrCode(entry) ? (
+          <div className="gallery-card-qr">
+            <QrPreview src={entry.qrImageUrl} alt={`${entry.title} QR code`} compact />
+          </div>
+        ) : null}
       </div>
     </>
   );
@@ -1691,6 +1768,35 @@ function ColorField({ label, value, onChange }: ColorFieldProps) {
   );
 }
 
+interface RangeFieldProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}
+
+function RangeField({ label, value, min, max, onChange }: RangeFieldProps) {
+  return (
+    <label className="range-field">
+      <span>{label}</span>
+      <div className="range-input-row">
+        <input
+          className="range-slider"
+          type="range"
+          min={min}
+          max={max}
+          step={1}
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+          aria-label={label}
+        />
+        <span className="range-value">{value}%</span>
+      </div>
+    </label>
+  );
+}
+
 interface ActionButtonProps {
   icon: LucideIcon;
   children: string;
@@ -1739,6 +1845,7 @@ function SettingsTabButton({ icon: Icon, label, isActive, onClick }: SettingsTab
 
 interface CollectionProfileCardProps {
   collection: CollectionDraft;
+  onUpdateThemeField: <K extends keyof CollectionTheme>(field: K, value: CollectionTheme[K]) => void;
   onOpenDetails: () => void;
   onOpenBackdrop: () => void;
   onOpenKiosk: () => void;
@@ -1746,6 +1853,7 @@ interface CollectionProfileCardProps {
 
 function CollectionProfileCard({
   collection,
+  onUpdateThemeField,
   onOpenDetails,
   onOpenBackdrop,
   onOpenKiosk
@@ -1782,11 +1890,57 @@ function CollectionProfileCard({
         </div>
       </section>
 
+      <section className="profile-appearance-panel">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="micro-label">Gallery Appearance</p>
+            <h3>Live style controls</h3>
+          </div>
+          <span className="glass-badge">Collection-wide</span>
+        </div>
+
+        <div className="profile-appearance-grid">
+          <ColorField
+            label="Launch button color"
+            value={collection.theme.launchButtonColor}
+            onChange={(nextValue) => onUpdateThemeField('launchButtonColor', nextValue)}
+          />
+          <RangeField
+            label="Gallery title size"
+            value={collection.theme.galleryTitleScale}
+            min={85}
+            max={140}
+            onChange={(nextValue) => onUpdateThemeField('galleryTitleScale', nextValue)}
+          />
+          <RangeField
+            label="Intro text size"
+            value={collection.theme.galleryIntroScale}
+            min={85}
+            max={140}
+            onChange={(nextValue) => onUpdateThemeField('galleryIntroScale', nextValue)}
+          />
+          <RangeField
+            label="Card title size"
+            value={collection.theme.cardTitleScale}
+            min={85}
+            max={140}
+            onChange={(nextValue) => onUpdateThemeField('cardTitleScale', nextValue)}
+          />
+          <RangeField
+            label="Card body size"
+            value={collection.theme.cardBodyScale}
+            min={85}
+            max={140}
+            onChange={(nextValue) => onUpdateThemeField('cardBodyScale', nextValue)}
+          />
+        </div>
+      </section>
+
       <div className="profile-metric-grid">
         <MetricTile icon={Link2} label="Cards" value={String(collection.entries.length)} />
         <MetricTile icon={Clock3} label="Idle reset" value={`${collection.idleTimeoutSeconds}s`} />
         <MetricTile icon={Keyboard} label="Return keys" value={String(collection.escapeHotkeys.length)} />
-        <MetricTile icon={Palette} label="Backdrop" value="Custom" />
+        <MetricTile icon={Palette} label="Launch color" value={collection.theme.launchButtonColor.toUpperCase()} />
       </div>
 
       <div className="profile-action-grid">

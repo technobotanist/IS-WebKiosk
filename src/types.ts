@@ -4,6 +4,7 @@ export interface CollectionEntry {
   author: string;
   description: string;
   destinationUrl: string;
+  showQrCode: boolean;
   qrImageUrl: string;
   previewImageUrl: string;
 }
@@ -14,6 +15,11 @@ export interface CollectionTheme {
   backgroundBottom: string;
   cloudOne: string;
   cloudTwo: string;
+  launchButtonColor: string;
+  galleryTitleScale: number;
+  galleryIntroScale: number;
+  cardTitleScale: number;
+  cardBodyScale: number;
 }
 
 export interface CollectionDraft {

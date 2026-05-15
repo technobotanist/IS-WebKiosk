@@ -24,6 +24,13 @@
   --interactive-shadow: 0 12px 26px rgba(199, 53, 35, 0.12);
   --shadow: 0 22px 48px rgba(9, 41, 51, 0.16);
   --shadow-tight: 0 12px 24px rgba(9, 41, 51, 0.12);
+  --theme-launch-button-color: #c73523;
+  --theme-launch-button-text: #ffffff;
+  --theme-launch-button-shadow: rgba(199, 53, 35, 0.24);
+  --theme-gallery-title-scale: 1;
+  --theme-gallery-intro-scale: 1;
+  --theme-card-title-scale: 1;
+  --theme-card-body-scale: 1;
 }
 
 * {
@@ -396,6 +403,39 @@ img {
   color: var(--muted);
 }
 
+.field-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(236, 248, 255, 0.9));
+}
+
+.field-toggle-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.field-toggle-copy span {
+  font-size: 0.95rem;
+  color: var(--text-deep);
+}
+
+.field-toggle-copy small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.field-toggle-row input[type='checkbox'] {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
 .field input,
 .field textarea {
   width: 100%;
@@ -418,6 +458,13 @@ img {
   border-color: var(--interactive-line);
 }
 
+.field input:disabled,
+.field textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  background: linear-gradient(180deg, rgba(246, 248, 251, 0.98), rgba(233, 239, 245, 0.9));
+}
+
 .field input:focus,
 .field textarea:focus {
   outline: none;
@@ -428,6 +475,12 @@ img {
 
 .field-span-full {
   grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .field-toggle-row {
+    align-items: start;
+  }
 }
 
 .panel-heading {
@@ -568,6 +621,15 @@ img {
   gap: 0.9rem;
 }
 
+.profile-appearance-panel {
+  padding: 1.1rem 1.15rem;
+  border-radius: 24px;
+  border: 1px solid rgba(165, 190, 202, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(236, 243, 248, 0.9));
+  display: grid;
+  gap: 0.9rem;
+}
+
 .profile-editor-copy {
   display: grid;
   gap: 0.35rem;
@@ -663,6 +725,12 @@ img {
   justify-content: center;
 }
 
+.profile-appearance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
 .preview-card,
 .qr-panel,
 .viewer-copy {
@@ -677,11 +745,17 @@ img {
   align-content: space-between;
 }
 
-.preview-card h3,
-.gallery-card h3,
-.viewer-toolbar h3,
-.gallery-heading h1 {
+.viewer-toolbar h3 {
   font-size: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.gallery-heading h1 {
+  font-size: calc(clamp(1.5rem, 3vw, 2.5rem) * var(--theme-gallery-title-scale));
+}
+
+.preview-card h3,
+.gallery-card h3 {
+  font-size: calc(clamp(1.5rem, 3vw, 2.5rem) * var(--theme-card-title-scale));
 }
 
 .gallery-layout {
@@ -715,6 +789,10 @@ img {
 
 .gallery-heading-actions .toolbar-actions {
   justify-content: flex-end;
+}
+
+.gallery-heading-copy > p {
+  font-size: calc(1rem * var(--theme-gallery-intro-scale));
 }
 
 .hidden-unlock-button {
@@ -798,11 +876,33 @@ img {
   gap: 0.7rem;
 }
 
+.gallery-card-copy > p:not(.author-label) {
+  font-size: calc(1rem * var(--theme-card-body-scale));
+}
+
 .gallery-card-footer {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.85rem;
   align-items: end;
+}
+
+.gallery-launch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.4rem;
+  padding: 0.95rem 1.3rem;
+  border-radius: 22px;
+  border: 1px solid var(--theme-launch-button-color);
+  background: var(--theme-launch-button-color);
+  color: var(--theme-launch-button-text);
+  box-shadow: 0 16px 28px var(--theme-launch-button-shadow);
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .gallery-card-qr {
@@ -955,12 +1055,14 @@ img {
   max-width: 18rem;
 }
 
-.color-field {
+.color-field,
+.range-field {
   display: grid;
   gap: 0.45rem;
 }
 
-.color-field span {
+.color-field > span,
+.range-field > span {
   font-size: 0.82rem;
   color: var(--muted);
 }
@@ -1000,6 +1102,30 @@ img {
 }
 
 .color-value {
+  font-family: Consolas, 'Courier New', monospace;
+  color: var(--text-deep);
+  font-size: 0.84rem;
+}
+
+.range-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(236, 248, 255, 0.9));
+}
+
+.range-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.range-value {
+  min-width: 3.9rem;
+  text-align: right;
   font-family: Consolas, 'Courier New', monospace;
   color: var(--text-deep);
   font-size: 0.84rem;
@@ -1144,6 +1270,7 @@ img {
   .studio-layout,
   .two-column-grid,
   .theme-grid,
+  .profile-appearance-grid,
   .profile-metric-grid,
   .profile-editor-fields,
   .profile-action-grid {
@@ -1168,6 +1295,10 @@ img {
     width: 100%;
   }
 
+  .gallery-launch-button {
+    width: 100%;
+  }
+
   .gallery-heading-actions {
     justify-items: stretch;
   }
@@ -1188,11 +1319,17 @@ img {
   }
 
   .brand-block h1,
-  .gallery-heading h1,
-  .gallery-card h3,
-  .preview-card h3,
   .viewer-toolbar h3 {
     font-size: clamp(1.65rem, 8vw, 2.3rem);
+  }
+
+  .gallery-heading h1 {
+    font-size: calc(clamp(1.65rem, 8vw, 2.3rem) * var(--theme-gallery-title-scale));
+  }
+
+  .gallery-card h3,
+  .preview-card h3 {
+    font-size: calc(clamp(1.65rem, 8vw, 2.3rem) * var(--theme-card-title-scale));
   }
 
   .viewer-shell {
