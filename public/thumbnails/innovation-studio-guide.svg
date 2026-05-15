@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title desc">
+  <title id="title">Exhibiting Guide preview</title>
+  <desc id="desc">Abstract preview artwork for the Exhibiting Guide gallery card.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbfdff" />
+      <stop offset="100%" stop-color="#f7ebe7" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)" />
+  <rect x="132" y="120" width="304" height="510" rx="32" fill="#ffffff" opacity="0.92" />
+  <rect x="196" y="176" width="176" height="18" rx="9" fill="#c73523" opacity="0.42" />
+  <rect x="176" y="232" width="216" height="12" rx="6" fill="#0b657f" opacity="0.18" />
+  <rect x="176" y="272" width="216" height="12" rx="6" fill="#0b657f" opacity="0.18" />
+  <rect x="176" y="312" width="216" height="12" rx="6" fill="#0b657f" opacity="0.18" />
+  <rect x="176" y="392" width="216" height="146" rx="28" fill="#2ca5bd" opacity="0.2" />
+  <rect x="500" y="132" width="568" height="126" rx="44" fill="#c73523" opacity="0.88" />
+  <rect x="500" y="290" width="568" height="280" rx="44" fill="#ffffff" opacity="0.88" />
+  <rect x="560" y="360" width="332" height="26" rx="13" fill="#c73523" opacity="0.18" />
+  <rect x="560" y="414" width="448" height="18" rx="9" fill="#0b657f" opacity="0.13" />
+  <rect x="560" y="454" width="448" height="18" rx="9" fill="#0b657f" opacity="0.13" />
+  <rect x="560" y="494" width="360" height="18" rx="9" fill="#0b657f" opacity="0.13" />
+  <text x="550" y="190" font-size="64" font-family="Trebuchet MS, Verdana, sans-serif" font-weight="700" fill="#ffffff">Exhibiting Guide</text>
+  <text x="552" y="236" font-size="28" font-family="Trebuchet MS, Verdana, sans-serif" fill="#ffffff" opacity="0.88">Planning help for student exhibits and public-facing gallery work.</text>
+</svg>

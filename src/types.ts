@@ -5,6 +5,7 @@ export interface CollectionEntry {
   description: string;
   destinationUrl: string;
   qrImageUrl: string;
+  previewImageUrl: string;
 }
 
 export interface CollectionTheme {

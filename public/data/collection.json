@@ -20,7 +20,8 @@
       "author": "Course Collaborations",
       "description": "Flexible installations for student work that can combine digital media, physical material, and interactive elements for a broad public audience.",
       "destinationUrl": "https://example.com/innovation-studio/ongoing-exhibits",
-      "qrImageUrl": "/qr/innovation-studio-exhibits.svg"
+      "qrImageUrl": "qr/innovation-studio-exhibits.svg",
+      "previewImageUrl": "thumbnails/innovation-studio-exhibits.svg"
     },
     {
       "id": "entry-exhibiting-guide",
@@ -28,7 +29,8 @@
       "author": "Student Exhibit Support",
       "description": "Reference material for shaping exhibit content, understanding audience, and planning how text, video, audio, and group work can live in the space.",
       "destinationUrl": "https://example.com/innovation-studio/exhibiting-guide",
-      "qrImageUrl": "/qr/innovation-studio-guide.svg"
+      "qrImageUrl": "qr/innovation-studio-guide.svg",
+      "previewImageUrl": "thumbnails/innovation-studio-guide.svg"
     },
     {
       "id": "entry-showcase-events",
@@ -36,7 +38,8 @@
       "author": "Open Audience Presentations",
       "description": "End-of-semester events can mix slide talks, analog table displays, interactive exhibits, screenings, and other formats depending on your goals.",
       "destinationUrl": "https://example.com/innovation-studio/showcase-events",
-      "qrImageUrl": "/qr/innovation-studio-events.svg"
+      "qrImageUrl": "qr/innovation-studio-events.svg",
+      "previewImageUrl": "thumbnails/innovation-studio-events.svg"
     }
   ]
 }

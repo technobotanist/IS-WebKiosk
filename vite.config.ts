@@ -2,17 +2,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/IS-WebKiosk/' : '/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Innovation Studio Exhibition Builder',
-        short_name: 'Innovation Studio',
-        description: 'Innovation Studio exhibition editor and launcher for public web destinations.',
-        start_url: '/',
+        name: 'Innovation Studio Web Kiosk Gallery',
+        short_name: 'IS Web Kiosk',
+        description: 'Curator-side gallery builder for Innovation Studio Chromebase kiosks and public web destinations.',
+        start_url: './',
+        scope: './',
         display: 'standalone',
         orientation: 'landscape',
         background_color: '#d3e2fc',
@@ -28,4 +30,4 @@ export default defineConfig({
       }
     })
   ]
-});
+}));

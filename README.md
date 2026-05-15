@@ -1,11 +1,15 @@
 # WebKiosking Studio
 
-React and Vite prototype for building per-collection kiosk gallery pages. Each collection is a JSON document containing public destination URLs, author names, short descriptive copy, QR image links, idle reset timing, and configurable return hotkeys.
+React and Vite prototype for building per-collection kiosk gallery pages. Each collection is a JSON document containing public destination URLs, author names, short descriptive copy, preview image links, QR image links, idle reset timing, and configurable return hotkeys.
+
+## Curator Guide
+
+For day-to-day curator use, see [CURATOR-GUIDE.md](CURATOR-GUIDE.md).
 
 ## What it does
 
 - Provides an editor for one gallery collection at a time.
-- Lets you add and remove gallery pages with title, author, destination URL, QR image URL, and short description.
+- Lets you add and remove gallery pages with title, author, destination URL, preview image URL, QR image URL, and short description.
 - Generates a locked gallery mode that launches those pages inside a kiosk shell.
 - Supports JSON import and export for collection handoff.
 - Lets you record custom hotkeys that return the kiosk from an open page back to the gallery home.
@@ -50,7 +54,8 @@ The default sample collection lives in `public/data/collection.json`.
       "author": "Course Collaborations",
       "description": "Flexible installations for student work that can combine digital media, physical material, and interactive elements for a broad public audience.",
       "destinationUrl": "https://example.com/innovation-studio/ongoing-exhibits",
-      "qrImageUrl": "/qr/innovation-studio-exhibits.svg"
+      "qrImageUrl": "qr/innovation-studio-exhibits.svg",
+      "previewImageUrl": "thumbnails/innovation-studio-exhibits.svg"
     }
   ]
 }

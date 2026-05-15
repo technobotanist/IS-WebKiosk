@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Curator guide for managing the Innovation Studio Web Kiosk Gallery on Chromebase kiosks."
+    />
+    <title>Curator Guide | Innovation Studio Web Kiosk Gallery</title>
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <style>
+      :root {
+        color-scheme: light;
+        --text: #000000;
+        --text-deep: #092933;
+        --muted: #2a5552;
+        --line: rgba(165, 190, 202, 0.55);
+        --glass: rgba(255, 255, 255, 0.96);
+        --accent: #c73523;
+        --accent-deep: #8f1f13;
+        --mint: #2ca5bd;
+        --shadow: 0 22px 48px rgba(9, 41, 51, 0.16);
+        --shadow-tight: 0 12px 24px rgba(9, 41, 51, 0.12);
+        font-family: 'Lucida Grande', 'Trebuchet MS', Verdana, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100svh;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 14% 16%, rgba(199, 53, 35, 0.16), transparent 24%),
+          radial-gradient(circle at 84% 12%, rgba(44, 165, 189, 0.2), transparent 24%),
+          linear-gradient(180deg, #fbfdff 0%, #edf4fb 42%, #d3e2fc 100%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page-shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: clamp(1rem, 2vw, 1.6rem);
+        display: grid;
+        gap: 1rem;
+      }
+
+      .glass-panel,
+      .guide-card,
+      .quick-fact,
+      .step-card,
+      .pill-link,
+      .notice,
+      .code-block {
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow-tight);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 252, 0.9));
+      }
+
+      .glass-panel {
+        padding: clamp(1.15rem, 2.4vw, 1.5rem);
+        border-radius: 30px;
+        box-shadow: var(--shadow);
+      }
+
+      .guide-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .guide-copy,
+      .guide-actions,
+      .guide-stack,
+      .guide-grid,
+      .guide-card,
+      .quick-facts,
+      .step-grid,
+      .step-card,
+      .notice-stack {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .micro-label {
+        margin: 0;
+        font-size: 0.74rem;
+        line-height: 1;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent-deep);
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      ul,
+      ol {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+        color: var(--text-deep);
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 5vw, 4.4rem);
+        max-width: 10ch;
+      }
+
+      h2 {
+        font-size: clamp(1.45rem, 2.7vw, 2.3rem);
+      }
+
+      h3 {
+        font-size: 1.15rem;
+      }
+
+      p,
+      li {
+        color: var(--muted);
+        line-height: 1.58;
+      }
+
+      ul,
+      ol {
+        padding-left: 1.2rem;
+      }
+
+      li + li {
+        margin-top: 0.4rem;
+      }
+
+      .pill-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.9rem;
+        padding: 0.72rem 1rem;
+        border-radius: 999px;
+        text-decoration: none;
+        color: var(--accent);
+        border-color: rgba(199, 53, 35, 0.24);
+        background: linear-gradient(180deg, rgba(255, 252, 251, 0.99), rgba(250, 237, 234, 0.92));
+      }
+
+      .pill-link.primary {
+        color: #ffffff;
+        border-color: rgba(199, 53, 35, 0.82);
+        background: linear-gradient(180deg, rgba(230, 112, 95, 0.96), rgba(199, 53, 35, 0.95) 60%, rgba(143, 31, 19, 0.95));
+      }
+
+      .guide-actions {
+        justify-items: start;
+        align-content: start;
+      }
+
+      .quick-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .quick-fact,
+      .step-card,
+      .notice,
+      .guide-card,
+      .code-block {
+        padding: 1rem;
+        border-radius: 24px;
+      }
+
+      .quick-fact strong,
+      .step-card strong {
+        display: block;
+        color: var(--text-deep);
+        margin-top: 0.2rem;
+      }
+
+      .guide-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .guide-card ul,
+      .guide-card ol {
+        margin-top: 0.15rem;
+      }
+
+      .step-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .step-card {
+        border-color: rgba(199, 53, 35, 0.2);
+        background: linear-gradient(180deg, rgba(255, 252, 251, 0.99), rgba(248, 239, 236, 0.9));
+      }
+
+      .step-number {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        border: 1px solid rgba(199, 53, 35, 0.3);
+        background: rgba(255, 255, 255, 0.85);
+      }
+
+      .code-block {
+        font-family: Consolas, 'Courier New', monospace;
+        overflow-x: auto;
+        color: var(--text-deep);
+      }
+
+      .notice-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .notice strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: var(--text-deep);
+      }
+
+      @media (max-width: 900px) {
+        .guide-hero,
+        .guide-grid,
+        .step-grid,
+        .notice-stack,
+        .quick-facts {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page-shell {
+          padding: 0.8rem;
+        }
+
+        h1 {
+          font-size: clamp(1.8rem, 8vw, 2.5rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="glass-panel guide-hero">
+        <div class="guide-copy">
+          <p class="micro-label">Innovation Studio Kiosks</p>
+          <h1>Curator Guide</h1>
+          <p>
+            Operating guide for the Innovation Studio Web Kiosk Gallery. Use this to manage gallery cards,
+            collection settings, import and export handoff files, and the locked kiosk workflow.
+          </p>
+        </div>
+
+        <div class="guide-actions">
+          <a class="pill-link primary" href="./index.html#gallery">Open Kiosk Gallery</a>
+          <a class="pill-link" href="./index.html#studio">Open Editor</a>
+          <p>GitHub Pages deployment target: <strong>https://technobotanist.github.io/IS-WebKiosk/</strong></p>
+        </div>
+      </section>
+
+      <section class="quick-facts">
+        <article class="quick-fact">
+          <p class="micro-label">Default State</p>
+          <strong>Gallery mode stays locked by default.</strong>
+        </article>
+        <article class="quick-fact">
+          <p class="micro-label">Unlock Window</p>
+          <strong>Editor access lasts 10 minutes unless relocked sooner.</strong>
+        </article>
+      </section>
+
+      <section class="guide-grid">
+        <article class="guide-card guide-stack">
+          <div>
+            <p class="micro-label">What This Tool Is For</p>
+            <h2>Maintain the kiosk gallery</h2>
+          </div>
+          <p>Use this app to build and maintain the gallery of web destinations shown on the Innovation Studio Chromebase kiosks.</p>
+          <ul>
+            <li>A card title</li>
+            <li>An author name</li>
+            <li>A public destination URL</li>
+            <li>A preview image URL</li>
+            <li>A QR image URL</li>
+            <li>A short description</li>
+          </ul>
+          <p>The app also stores idle reset timing, return hotkeys, backdrop colors, and import/export data for handoff between workstations.</p>
+        </article>
+
+        <article class="guide-card guide-stack">
+          <div>
+            <p class="micro-label">Unlock The Editor</p>
+            <h2>Hidden hold gesture</h2>
+          </div>
+          <ol>
+            <li>In gallery view, press and hold the subtitle text above the gallery title.</li>
+            <li>Hold for about 2 seconds.</li>
+            <li>The app will switch to the editor and show an unlock countdown.</li>
+          </ol>
+          <ul>
+            <li>Select <strong>Relock</strong> when you are done.</li>
+            <li>If the timer expires, the app returns to gallery mode automatically.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="glass-panel guide-stack">
+        <div>
+          <p class="micro-label">Studio Layout</p>
+          <h2>What curators work with</h2>
+        </div>
+        <div class="step-grid">
+          <article class="step-card">
+            <div class="step-number">1</div>
+            <strong>Collection Editor</strong>
+            <p>Shows the gallery header content you are editing and gives quick access to collection controls.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-number">2</div>
+            <strong>Gallery cards</strong>
+            <p>Main work surface for selecting, editing, removing, and previewing cards.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-number">3</div>
+            <strong>Card row cues</strong>
+            <p>Rows show <strong>Click to edit</strong> or <strong>Selected for editing</strong> to indicate which card is active.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="guide-grid">
+        <article class="guide-card guide-stack">
+          <div>
+            <p class="micro-label">Update A Gallery</p>
+            <h2>Card workflow</h2>
+          </div>
+          <ol>
+            <li>Unlock the editor.</li>
+            <li>Work from the <strong>Gallery cards</strong> panel.</li>
+            <li>Select an existing card or choose <strong>Add Card</strong>.</li>
+            <li>Use <strong>Edit</strong> to open the card editor.</li>
+            <li>Edit the card fields, including an optional preview image URL for gallery cards.</li>
+            <li>Use <strong>Preview In Kiosk</strong> to test the live destination.</li>
+            <li>Use <strong>Done Editing</strong> to close the card editor.</li>
+          </ol>
+        </article>
+
+        <article class="guide-card guide-stack">
+          <div>
+            <p class="micro-label">Default New Card</p>
+            <h2>Starting values</h2>
+          </div>
+          <ul>
+            <li>Title: <strong>Exhibit #n</strong></li>
+            <li>Author: <strong>Jane Doe</strong></li>
+            <li>Destination URL: <strong>https://go.ncsu.edu/innovation-studio-news</strong></li>
+            <li>QR image URL: <strong>https://go.ncsu.edu/innovation-studio-news.qr</strong></li>
+          </ul>
+          <div class="code-block">Libraries News:
+Showing news stories tagged with "Innovation Studio"</div>
+        </article>
+      </section>
+
+      <section class="guide-grid">
+        <article class="guide-card guide-stack">
+          <div>
+            <p class="micro-label">Collection Settings</p>
+            <h2>Collection-wide controls</h2>
+          </div>
+          <ul>
+            <li>Collection title and subtitle</li>
+            <li>Gallery slug</li>
+            <li>Intro text</li>
+            <li>Idle reset seconds</li>
+            <li>Return hotkeys</li>
+            <li>Backdrop colors</li>
+          </ul>
+          <p>The Collection Editor card also gives direct access to <strong>Edit Details</strong>, <strong>Refine Backdrop</strong>, and <strong>Tune Kiosk Rules</strong>.</p>
+        </article>
+
+        <article class="guide-card guide-stack">
+          <div>
+            <p class="micro-label">Import And Export</p>
+            <h2>Move or restore a collection</h2>
+          </div>
+          <ul>
+            <li><strong>Export</strong> downloads the current collection as JSON.</li>
+            <li><strong>Import</strong> loads a previously exported JSON collection.</li>
+            <li><strong>Restore Sample</strong> replaces the current collection with the sample set.</li>
+          </ul>
+          <p>Changes save automatically in this browser on this machine. Export the collection if you need a backup or want to move it to another workstation.</p>
+        </article>
+      </section>
+
+      <section class="notice-stack">
+        <article class="notice">
+          <strong>Gallery Mode</strong>
+          <p>Visitors see the collection grid. Selecting a card opens the destination URL inside the kiosk viewer. Idle reset and return hotkeys send the session back to the gallery grid.</p>
+        </article>
+        <article class="notice">
+          <strong>Troubleshooting</strong>
+          <p>If the editor does not open, hold the subtitle text slightly longer and make sure you are not clicking a gallery card. If changes disappear, re-import the last exported collection JSON.</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
