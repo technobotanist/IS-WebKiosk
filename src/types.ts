@@ -3,6 +3,7 @@ export interface CollectionEntry {
   title: string;
   author: string;
   description: string;
+  longDescription: string;
   destinationUrl: string;
   showQrCode: boolean;
   qrImageUrl: string;
@@ -15,6 +16,7 @@ export interface CollectionTheme {
   backgroundBottom: string;
   cloudOne: string;
   cloudTwo: string;
+  hazeIntensity: number;
   launchButtonColor: string;
   galleryTitleScale: number;
   galleryIntroScale: number;
@@ -27,6 +29,7 @@ export interface CollectionDraft {
   title: string;
   subtitle: string;
   introText: string;
+  launchButtonLabel: string;
   gallerySlug: string;
   theme: CollectionTheme;
   idleTimeoutSeconds: number;

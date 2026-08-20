@@ -38,6 +38,33 @@ For local testing in this repo, use:
 
 When locked, the app stays in gallery mode by default.
 
+## Point A Kiosk At A Collection
+
+One deployment can host more than one collection, and each has its own stable URL.
+
+- The default collection loads at the plain gallery URL.
+- A named collection loads when you add `?collection=<slug>` to the URL, for example:
+
+`https://technobotanist.github.io/IS-WebKiosk/?collection=sample-showcase`
+
+- Each named collection is stored as `public/data/<slug>.json` in the deployment.
+- If a collection cannot be found, the app loads the default collection and shows a notice.
+
+## Kiosk Mode For Display Machines
+
+By default the app remembers edits in the browser on that machine. A public display kiosk usually wants the opposite: always show the latest published collection.
+
+- Add `?kiosk=1` to the URL to turn kiosk mode on (`?kiosk=0` turns it off).
+- In kiosk mode the machine always loads the published collection and does not save local edits.
+- The setting is remembered on that machine, so you only need to add it once.
+- A fleet-wide default can be set in `public/kiosk-config.json` with `"followRemote": true`.
+
+To provision a new kiosk in one step, open a single link that names the collection and turns on kiosk mode:
+
+`https://technobotanist.github.io/IS-WebKiosk/?collection=main&kiosk=1`
+
+A shortened link can point to that address, so a kiosk is configured by opening one short URL.
+
 ## Unlock The Editor
 
 There is no visible password screen.
@@ -123,6 +150,7 @@ Return hotkeys are the keys that send an open kiosk page back to the gallery hom
 Important:
 
 - Changes save automatically in this browser on this machine.
+- On a kiosk in kiosk mode, changes are not saved locally; edit the published collection JSON and redeploy instead.
 - Export the collection if you need a backup or want to move it to another workstation.
 
 ## What Gallery Mode Does

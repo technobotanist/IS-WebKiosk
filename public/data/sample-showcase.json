@@ -1,0 +1,58 @@
+{
+  "id": "sample-showcase",
+  "title": "Sample Showcase",
+  "subtitle": "Named Collection Demo",
+  "introText": "This is a second, separately addressable collection served from the same deployment. Point a kiosk at it with a stable URL that ends in ?collection=sample-showcase to load this gallery instead of the default one. Use this pattern to host as many named collections as you like from one GitHub Pages site.",
+  "gallerySlug": "sample-showcase",
+  "launchButtonLabel": "Launch page",
+  "theme": {
+    "backgroundTop": "#fafdff",
+    "backgroundMid": "#e9f2fb",
+    "backgroundBottom": "#cfe0f6",
+    "cloudOne": "#1f6feb",
+    "cloudTwo": "#2ca5bd",
+    "hazeIntensity": 85,
+    "launchButtonColor": "#1f6feb",
+    "galleryTitleScale": 100,
+    "galleryIntroScale": 100,
+    "cardTitleScale": 100,
+    "cardBodyScale": 100
+  },
+  "idleTimeoutSeconds": 120,
+  "escapeHotkeys": ["Escape", "Control+Shift+H"],
+  "entries": [
+    {
+      "id": "entry-memorial-belltower",
+      "title": "Memorial Belltower",
+      "author": "North Campus Landmark · Dedicated 1949",
+      "description": "NC State's iconic stone landmark, dedicated in 1949 to honor alumni lost in World War I—and lit Wolfpack red to mark moments of celebration.",
+      "longDescription": "Architect William Henry Deacy was first appointed to design the tower in 1920, but the stonework was not completed until 1937 because of setbacks during the Great Depression and again during World War II. The Memorial Belltower was officially dedicated in 1949 to honor NC State alumni killed in World War I, and the tradition of lighting the tower red for auspicious occasions began in 1999. Building 002 · North Precinct · 2101 Hillsborough Street.",
+      "destinationUrl": "https://facilities.ofa.ncsu.edu/building/mbt/",
+      "showQrCode": true,
+      "qrImageUrl": "qr/ncsu-belltower.svg",
+      "previewImageUrl": "thumbnails/ncsu-belltower.jpg"
+    },
+    {
+      "id": "entry-holladay-hall",
+      "title": "Holladay Hall",
+      "author": "North Campus · The First Building",
+      "description": "The first building on campus—once home to virtually the entire college—now a Raleigh historic landmark of Romanesque revival design.",
+      "longDescription": "Holladay Hall was the first building on campus and, for years, contained virtually the entire college. In 1915 the Romanesque revival building was named for Alexander Quarles Holladay, NC State's first president (1889–1899). Building 003 · North Precinct · 20 Watauga Club Drive.",
+      "destinationUrl": "https://facilities.ofa.ncsu.edu/building/hol/",
+      "showQrCode": true,
+      "qrImageUrl": "qr/ncsu-holladay.svg",
+      "previewImageUrl": "thumbnails/ncsu-holladay.jpg"
+    },
+    {
+      "id": "entry-gregg-museum",
+      "title": "Gregg Museum of Art & Design",
+      "author": "North Campus · Opened 2017",
+      "description": "The former Chancellor's Residence, reborn in 2017 as NC State's art and design museum with a LEED Gold gallery addition.",
+      "longDescription": "First purchased in 1912 for $15,000, this property became the Chancellor's Residence once construction was completed in 1928. The former residence opened as the Gregg Museum of Art & Design in 2017, adding gallery, office, and collections-storage space that was certified LEED Gold in March 2018. Building 001 · North Precinct · 1903 Hillsborough Street.",
+      "destinationUrl": "https://facilities.ofa.ncsu.edu/building/grm/",
+      "showQrCode": true,
+      "qrImageUrl": "qr/ncsu-gregg.svg",
+      "previewImageUrl": "thumbnails/ncsu-gregg.jpg"
+    }
+  ]
+}

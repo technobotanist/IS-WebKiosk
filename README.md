@@ -14,6 +14,8 @@ For day-to-day curator use, see [CURATOR-GUIDE.md](CURATOR-GUIDE.md).
 - Generates a locked gallery mode that launches those pages inside a kiosk shell.
 - Supports JSON import and export for collection handoff.
 - Lets you record custom hotkeys that return the kiosk from an open page back to the gallery home.
+- Serves multiple named collections from one deployment, each addressable with a stable `?collection=<slug>` URL.
+- Supports a follow-remote kiosk mode so display machines always load the latest published collection.
 
 ## Quick start
 
@@ -36,7 +38,7 @@ In the repository's GitHub Pages settings, set the source to `GitHub Actions`. I
 
 ## Runtime sample data
 
-The default sample collection lives in `public/data/collection.json`.
+The default sample collection lives in `public/data/collection.json`. Additional named collections live alongside it as `public/data/<slug>.json` and are selected with `?collection=<slug>` (see below). A demo second collection ships at `public/data/sample-showcase.json`.
 
 ```json
 {
@@ -74,6 +76,42 @@ The default sample collection lives in `public/data/collection.json`.
 }
 
 ```
+
+## Multiple collections and kiosk provisioning
+
+One deployment can serve any number of named collections, and display kiosks can be set to always follow the published copy. Both behaviors are controlled from the URL, so a kiosk is provisioned by opening a single link.
+
+### Named collections (`?collection=<slug>`)
+
+- Add `?collection=<slug>` to the URL to load `public/data/<slug>.json` instead of the default `public/data/collection.json`.
+- Host as many collections as you like by adding more `public/data/<slug>.json` files to the deployment.
+- Each named collection keeps its own local edits — browser storage is namespaced per slug, so collections never overwrite one another.
+- If the requested collection is missing, the app falls back to the default collection and shows a notice.
+- Slugs are limited to lowercase letters, numbers, and hyphens.
+
+A demo second collection ships at `public/data/sample-showcase.json`; load it with `?collection=sample-showcase`.
+
+### Follow-remote kiosk mode (`?kiosk=1`)
+
+By default the app is local-first: once a browser loads a collection, its own saved copy wins so curator edits persist. Public display kiosks usually want the opposite — always show the latest published collection.
+
+- `?kiosk=1` (or `?role=kiosk`) turns on follow-remote mode; `?kiosk=0` turns it off.
+- In follow-remote mode the published JSON is the source of truth: local storage never shadows it and local edits are not saved.
+- The choice is remembered on the device, so you only pass the parameter once.
+- A fleet-wide default can be set in `public/kiosk-config.json` with `"followRemote": true`.
+- Precedence: URL parameter (remembered) > device setting > `kiosk-config.json` > off.
+
+Collection JSON is always fetched with cache-busting, so an updated collection reaches kiosks on the next reload.
+
+### Provisioning a kiosk
+
+Point a short link at a stable, self-configuring URL and open it once on a new kiosk:
+
+```text
+go.ncsu.edu/is-kiosk-main  ->  https://technobotanist.github.io/IS-WebKiosk/?collection=main&kiosk=1
+```
+
+The kiosk loads the named collection, always shows the current published version, and will not drift. Repointing the short link later reconfigures kiosks without touching each device.
 
 ## Kiosk behavior
 

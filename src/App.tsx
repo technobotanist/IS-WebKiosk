@@ -2,15 +2,18 @@ import {
   ArrowUpRight,
   BookOpen,
   Clock3,
+  Delete,
   Download,
   Eye,
   Keyboard,
+  KeyRound,
   Link2,
   Palette,
   PencilLine,
   Plus,
   RefreshCcw,
   Settings2,
+  Trash2,
   Upload,
   X,
   type LucideIcon
@@ -22,6 +25,7 @@ import {
   useState,
   type CSSProperties,
   type ChangeEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode
 } from 'react';
 import type { CollectionDraft, CollectionEntry, CollectionTheme } from './types';
@@ -37,9 +41,24 @@ interface FeedbackState {
   message: string;
 }
 
+interface KioskConfig {
+  curatorPin?: unknown;
+  kioskMode?: unknown;
+  followRemote?: unknown;
+}
+
 const STORAGE_KEY = 'webkiosking-innovation-studio-v1';
 const GALLERY_UNLOCK_HOLD_MS = 1800;
 const GALLERY_UNLOCK_WINDOW_MS = 10 * 60 * 1000;
+const CURATOR_PIN_STORAGE_KEY = 'webkiosking-curator-pin-v1';
+const KIOSK_CONFIG_PATH = 'kiosk-config.json';
+const DEFAULT_COLLECTION_FILE = 'data/collection.json';
+const KIOSK_MODE_STORAGE_KEY = 'webkiosking-kiosk-mode-v1';
+const COLLECTION_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+const CURATOR_PIN_PATTERN = /^\d{4,8}$/;
+const CURATOR_PIN_ENV_DEFAULT = import.meta.env.VITE_CURATOR_PIN ?? '';
+const PIN_ALERT_EMAIL = 'cpkeena2@ncsu.edu';
+const PIN_ALERT_ENDPOINT = import.meta.env.VITE_PIN_ALERT_ENDPOINT ?? '';
 const modifierOrder = ['Control', 'Alt', 'Shift', 'Meta'] as const;
 const modifierSet = new Set<string>(modifierOrder);
 const publicBasePath = import.meta.env.BASE_URL;
@@ -50,6 +69,7 @@ const defaultTheme: CollectionTheme = {
   backgroundBottom: '#d3e2fc',
   cloudOne: '#c73523',
   cloudTwo: '#2ca5bd',
+  hazeIntensity: 100,
   launchButtonColor: '#c73523',
   galleryTitleScale: 100,
   galleryIntroScale: 100,
@@ -73,53 +93,182 @@ const studioDeliveryNote =
 const defaultGalleryIntro =
   'The Innovation Studio is an exhibition space for sharing student work with a broader audience, as either ongoing exhibits or one-time events. Our interactive projection tables can display digital media, including text, video, and audio, and can incorporate physical or interactive creations.';
 
+const defaultLaunchButtonLabel = 'Launch page';
+
 const defaultNewEntryDescription =
   'Libraries News:\nShowing news stories tagged with "Innovation Studio"';
 
+const defaultNewEntryLongDescription =
+  'This kiosk card links to a public web destination for visitors to explore. Use this longer description on the project page to give more context about the work, its creators, and what visitors can expect to see.';
+
 const fallbackCollectionSeed: CollectionDraft = {
-  id: 'innovation-studio',
-  title: 'Innovation Studio',
-  subtitle: 'Exhibition Space',
-  introText: defaultGalleryIntro,
-  gallerySlug: 'innovation-studio',
-  theme: defaultTheme,
+  id: 'ncstate-landmarks',
+  title: 'Building the Wolfpack',
+  subtitle: 'An NC State Campus Architecture Exhibit',
+  introText:
+    "From the first brick building raised by state prisoners to an award-winning research library longer than a football field, NC State's campus tells the university's story in stone, steel, and glass. Explore ten landmark buildings, tap a card to open its full history from the NC State Facilities archive, and trace how a small land-grant college grew into a modern research university.",
+  gallerySlug: 'ncstate-landmarks',
+  launchButtonLabel: 'Launch page',
+  theme: {
+    backgroundTop: '#fffafa',
+    backgroundMid: '#fdecec',
+    backgroundBottom: '#f6d4d4',
+    cloudOne: '#cc0000',
+    cloudTwo: '#6b7683',
+    hazeIntensity: 85,
+    launchButtonColor: '#cc0000',
+    galleryTitleScale: 100,
+    galleryIntroScale: 100,
+    cardTitleScale: 100,
+    cardBodyScale: 100
+  },
   idleTimeoutSeconds: 120,
   escapeHotkeys: ['Escape', 'Control+Shift+H'],
   entries: [
     {
-      id: 'entry-ongoing-exhibits',
-      title: 'Ongoing Exhibits',
-      author: 'Course Collaborations',
+      id: 'entry-memorial-belltower',
+      title: 'Memorial Belltower',
+      author: 'North Campus Landmark · Dedicated 1949',
       description:
-        'Flexible installations for student work that can combine digital media, physical material, and interactive elements for a broad public audience.',
-      destinationUrl: 'https://example.com/innovation-studio/ongoing-exhibits',
-      showQrCode: false,
-      qrImageUrl: 'qr/innovation-studio-exhibits.svg',
-      previewImageUrl: 'thumbnails/innovation-studio-exhibits.svg'
+        "NC State's iconic stone landmark, dedicated in 1949 to honor alumni lost in World War I—and lit Wolfpack red to mark moments of celebration.",
+      longDescription:
+        "Architect William Henry Deacy was first appointed to design the tower in 1920, but the stonework was not completed until 1937 because of setbacks during the Great Depression and again during World War II. The Memorial Belltower was officially dedicated in 1949 to honor NC State alumni killed in World War I, and the tradition of lighting the tower red for auspicious occasions began in 1999. A recent completion and restoration project finally installed the belfry's 55 bells, which for decades existed only as a speaker system. Building 002 · North Precinct · 2101 Hillsborough Street.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/mbt/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-belltower.svg',
+      previewImageUrl: 'thumbnails/ncsu-belltower.jpg'
     },
     {
-      id: 'entry-exhibiting-guide',
-      title: 'Exhibiting Guide',
-      author: 'Student Exhibit Support',
+      id: 'entry-holladay-hall',
+      title: 'Holladay Hall',
+      author: 'North Campus · The First Building',
       description:
-        'Reference material for shaping exhibit content, understanding audience, and planning how text, video, audio, and group work can live in the space.',
-      destinationUrl: 'https://example.com/innovation-studio/exhibiting-guide',
-      showQrCode: false,
-      qrImageUrl: 'qr/innovation-studio-guide.svg',
-      previewImageUrl: 'thumbnails/innovation-studio-guide.svg'
+        'The first building on campus—once home to virtually the entire college—now a Raleigh historic landmark of Romanesque revival design.',
+      longDescription:
+        "Holladay Hall was the first building on campus and, for years, contained virtually the entire college. Prisoners of the state penitentiary built what was then called “Main Building” with bricks donated by the prison. Its basement held laboratories, a kitchen, a dining hall, and a rare gymnasium; offices, classrooms, and a donated library filled the first floor; and 72 students lived on the upper floors, paying $130 a year in tuition that could be reduced for those who swept floors and waited tables. In 1915 the Romanesque revival building was named for Alexander Quarles Holladay, NC State's first president (1889–1899). Building 003 · North Precinct · 20 Watauga Club Drive.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/hol/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-holladay.svg',
+      previewImageUrl: 'thumbnails/ncsu-holladay.jpg'
     },
     {
-      id: 'entry-showcase-events',
-      title: 'Showcase Events',
-      author: 'Open Audience Presentations',
+      id: 'entry-gregg-museum',
+      title: 'Gregg Museum of Art & Design',
+      author: 'North Campus · Opened 2017',
       description:
-        'End-of-semester events can mix slide talks, analog table displays, interactive exhibits, screenings, and other formats depending on your goals.',
-      destinationUrl: 'https://example.com/innovation-studio/showcase-events',
-      showQrCode: false,
-      qrImageUrl: 'qr/innovation-studio-events.svg',
-      previewImageUrl: 'thumbnails/innovation-studio-events.svg'
+        "The former Chancellor's Residence, reborn in 2017 as NC State's art and design museum with a LEED Gold gallery addition.",
+      longDescription:
+        "First purchased in 1912 for $15,000, this property became the Chancellor's Residence once construction was completed in 1928. In 2011 the Chancellor moved into a new residence, and the former residence opened as the Gregg Museum of Art & Design in 2017. The renovation added 16,589 gross square feet for museum galleries, administrative offices, meeting spaces, and collections storage, and in March 2018 the newly constructed addition was certified LEED Gold for its leadership in energy and environmental design. Building 001 · North Precinct · 1903 Hillsborough Street.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/grm/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-gregg.svg',
+      previewImageUrl: 'thumbnails/ncsu-gregg.jpg'
+    },
+    {
+      id: 'entry-1911-building',
+      title: '1911 Building',
+      author: 'North Campus · Named for the Class of 1911',
+      description:
+        'A Victorian landmark with a broad Doric verandah—once the largest dormitory in the South—named for the class that ended campus hazing.',
+      longDescription:
+        "The Victorian 1911 Building, distinguished by a broad Doric verandah whose cream-colored columns are made of brick, spans 45,008 square feet and was originally the largest dormitory in the South. It honors the Class of 1911, whose members vowed never to haze incoming freshmen and kept that promise—an unusual pledge that impressed faculty so deeply the new dormitory was named in the class's honor, marking a “landmark in the history of the college.” Building 036 · North Precinct · 10 Current Drive.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/nin/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-1911.svg',
+      previewImageUrl: 'thumbnails/ncsu-1911.jpg'
+    },
+    {
+      id: 'entry-reynolds-coliseum',
+      title: 'Reynolds Coliseum',
+      author: 'Central Campus · Home of the Wolfpack',
+      description:
+        "Home of Wolfpack basketball and two NCAA champions, this 14,000-seat arena grew from one alumnus's decade-long campaign.",
+      longDescription:
+        "After 5,000 people were rained out of a 1940 Farmers' Week meeting held in an outdoor stadium, alumnus David Clark championed the idea of a coliseum, promoting it for a decade before Reynolds Coliseum was finally built. It has been home to the fabled Wolfpack basketball teams—including two NCAA champions—and has hosted tournaments, presidential addresses, concerts, and a public lecture by architect Frank Lloyd Wright attended by 5,000 people. Named for tobacco magnate and philanthropist William Neal Reynolds, the arena's floor measures 108 by 312 feet with seating for 14,000. Building 100 · Central Precinct · 2411 Dunn Avenue.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/col/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-reynolds.svg',
+      previewImageUrl: 'thumbnails/ncsu-reynolds.jpg'
+    },
+    {
+      id: 'entry-talley-student-union',
+      title: 'Talley Student Union',
+      author: 'Central Campus · Rebuilt 2012',
+      description:
+        'The heart of campus life, built in 1972 and transformed in a 2012 expansion with a 1,200-guest ballroom, dining, and a two-level bookstore.',
+      longDescription:
+        "Originally called Talley Student Center, the building opened in 1972 on a parking lot beside Reynolds Coliseum as a successor to the Erdahl-Cloyd Student Union. A major 2012 renovation and addition earned LEED Silver certification—plus LEED certification for ongoing operations and maintenance—and produced today's Talley Student Union, featuring a grand ballroom for up to 1,200 guests, a wide variety of dining, lounge, and meeting venues, recreational areas, student organization and government offices, a two-level NC State Bookstore, a great lawn, and advanced technology. Building 102 · Central Precinct · 2610 Cates Avenue.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/tsu/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-talley.svg',
+      previewImageUrl: 'thumbnails/ncsu-talley.jpg'
+    },
+    {
+      id: 'entry-hunt-library',
+      title: 'James B. Hunt Jr. Library',
+      author: 'Centennial Campus · Designed by Snøhetta',
+      description:
+        'The award-winning intellectual and social nexus of Centennial Campus—longer than a football field and designed by global firm Snøhetta.',
+      longDescription:
+        "The James B. Hunt Jr. Library serves as the intellectual and social nexus for the growing population on NC State's Centennial Campus, a community of academic, corporate, and government partners. Its 253,028 gross square feet house collections that support multidisciplinary research and teaching, along with the Institute for Emerging Issues, established with the help of former North Carolina governor James B. Hunt Jr. Anchoring the Centennial Campus Academic Oval, the building stretches roughly 460 feet long and 180 feet wide—longer and wider than a football field—and was designed to LEED Silver by acclaimed global firm Snøhetta with North Carolina executive architects Pearce Brinkley Cease + Lee. Building 783A · Centennial Precinct · 1070 Partners Way.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/jhl/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-hunt.svg',
+      previewImageUrl: 'thumbnails/ncsu-hunt.jpg'
+    },
+    {
+      id: 'entry-erdahl-cloyd',
+      title: 'D.H. Hill Jr. Library — Erdahl-Cloyd Wing',
+      author: 'North Campus · “The Atrium”',
+      description:
+        "Known as the Atrium, this former student union is now the library's main entrance, food court, and home of the Erdahl-Cloyd Theater.",
+      longDescription:
+        "Often called the Atrium, the Erdahl-Cloyd West Wing of the D.H. Hill Jr. Library gives students an alternative to cafeteria dining, with a food court, a campus convenience store, and the Erdahl-Cloyd Theater. Formerly the student union, it is named for two Student Affairs administrators—Gerald Orlando Theodore Erdahl, who built a nationally admired student union program, and Edward Lamar Cloyd, a 1915 alumnus and Dean of Students for 36 years. The new Atrium food court reopened after renovation in January 2011, and in 2019 the wing became the primary entrance to the library. Building 047A · North Precinct · 2 Broughton Drive.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/ec/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-erdahl-cloyd.svg',
+      previewImageUrl: 'thumbnails/ncsu-erdahl-cloyd.jpg'
+    },
+    {
+      id: 'entry-burlington-laboratory',
+      title: 'Burlington Laboratory',
+      author: 'North Campus · Nuclear Pioneer',
+      description:
+        "Home to the world's first nuclear reactor built solely for peacetime education—installed in 1955 and still training reactor operators today.",
+      longDescription:
+        "National attention came to NC State in 1955 when the world's first nuclear reactor devoted solely to the peacetime application of nuclear fission in an educational program was installed here. Burlington Nuclear Laboratories was named for Burlington Industries, a textile company that helped privately fund the reactor building, and a one-million-watt PULSTAR reactor was later added. Enlarged with state funding in 1973 and renamed Burlington Engineering Laboratories, the building supports research and the training of nuclear reactor operators, methods of power generation, and the medical and industrial uses of radiation. Building 042 · North Precinct · 2500 Katharine Stinson Drive.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/bu/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-burlington.svg',
+      previewImageUrl: 'thumbnails/ncsu-burlington.jpg'
+    },
+    {
+      id: 'entry-fitts-woolard-hall',
+      title: 'Fitts-Woolard Hall',
+      author: 'Centennial Campus · Opened 2020',
+      description:
+        "The College of Engineering's newest home on Centennial Campus—a glass-walled teaching tool that puts engineering on display.",
+      longDescription:
+        "When it opened in 2020, the College of Engineering's newest facility marked a crucial step in the College's move to Centennial Campus. Fitts-Woolard Hall is home to the Department of Civil, Construction, and Environmental Engineering; the Edward P. Fitts Department of Industrial and Systems Engineering; and the dean's administrative offices. Funded through a unique public-private sponsorship backed by Edward P. Fitts, Jr., Edgar S. Woolard, Jr., and more than 300 alumni, the building is itself a teaching tool—its transparent labs and exposed structure put sustainability and engineering components on display throughout the envelope, structure, and control systems. Building 782E · Centennial Precinct · 915 Partners Way.",
+      destinationUrl: 'https://facilities.ofa.ncsu.edu/building/fwh/',
+      showQrCode: true,
+      qrImageUrl: 'qr/ncsu-fitts-woolard.svg',
+      previewImageUrl: 'thumbnails/ncsu-fitts-woolard.jpg'
     }
   ]
+};
+
+const emptyCollectionSeed: CollectionDraft = {
+  id: 'blank-gallery',
+  title: 'Untitled Gallery',
+  subtitle: '',
+  introText: '',
+  gallerySlug: 'untitled-gallery',
+  launchButtonLabel: 'Launch page',
+  theme: defaultTheme,
+  idleTimeoutSeconds: 120,
+  escapeHotkeys: ['Escape', 'Control+Shift+H'],
+  entries: []
 };
 
 function resolvePublicPath(value: string) {
@@ -141,6 +290,29 @@ function resolvePublicPath(value: string) {
 
   const normalizedPath = trimmedValue.replace(/^\.\//, '').replace(/^\//, '');
   return `${publicBasePath}${normalizedPath}`;
+}
+
+async function fetchCollectionSeed(file: string): Promise<CollectionDraft | null> {
+  try {
+    const response = await fetch(resolvePublicPath(file), { cache: 'no-store' });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    // Some static hosts answer a missing file with a 200 HTML fallback page. Guard against
+    // parsing that as a collection so a bad slug cleanly falls through to the default file.
+    const contentType = response.headers.get('content-type') ?? '';
+    const body = await response.text();
+
+    if (contentType.includes('html') || body.trimStart().startsWith('<')) {
+      return null;
+    }
+
+    return normalizeCollection(JSON.parse(body));
+  } catch {
+    return null;
+  }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -183,6 +355,7 @@ function normalizeTheme(value: unknown): CollectionTheme {
     backgroundBottom: normalizeHexColor(value.backgroundBottom, defaultTheme.backgroundBottom),
     cloudOne: normalizeHexColor(value.cloudOne, defaultTheme.cloudOne),
     cloudTwo: normalizeHexColor(value.cloudTwo, defaultTheme.cloudTwo),
+    hazeIntensity: clampNumber(value.hazeIntensity, 0, 100, defaultTheme.hazeIntensity),
     launchButtonColor: normalizeHexColor(value.launchButtonColor, defaultTheme.launchButtonColor),
     galleryTitleScale: clampNumber(value.galleryTitleScale, 85, 140, defaultTheme.galleryTitleScale),
     galleryIntroScale: clampNumber(value.galleryIntroScale, 85, 140, defaultTheme.galleryIntroScale),
@@ -340,6 +513,7 @@ function createBlankEntry(index: number, seed?: Partial<CollectionEntry>): Colle
     title: seed?.title ?? `Exhibit #${index}`,
     author: seed?.author ?? '',
     description: seed?.description ?? '',
+    longDescription: seed?.longDescription ?? '',
     destinationUrl: seed?.destinationUrl ?? '',
     showQrCode: seed?.showQrCode ?? false,
     qrImageUrl: seed?.qrImageUrl ?? '',
@@ -352,6 +526,7 @@ function createEntry(index: number, seed?: Partial<CollectionEntry>): Collection
     title: `Exhibit #${index}`,
     author: 'Jane Doe',
     description: defaultNewEntryDescription,
+    longDescription: defaultNewEntryLongDescription,
     destinationUrl: 'https://go.ncsu.edu/innovation-studio-news',
     showQrCode: false,
     qrImageUrl: '',
@@ -369,6 +544,7 @@ function normalizeEntry(value: unknown, index: number): CollectionEntry {
     title: readString(value.title, `Exhibit #${index + 1}`),
     author: readString(value.author),
     description: readString(value.description),
+    longDescription: readString(value.longDescription),
     destinationUrl: readString(value.destinationUrl),
     showQrCode: readBoolean(value.showQrCode),
     qrImageUrl: readString(value.qrImageUrl),
@@ -387,16 +563,14 @@ function normalizeCollection(value: unknown): CollectionDraft {
 
   const title = readString(value.title, 'New Collection');
   const entriesSource = Array.isArray(value.entries) ? value.entries : [];
-  const entries =
-    entriesSource.length > 0
-      ? entriesSource.map((entry, index) => normalizeEntry(entry, index))
-      : [createEntry(1)];
+  const entries = entriesSource.map((entry, index) => normalizeEntry(entry, index));
 
   return {
     id: readString(value.id, createId('collection')),
     title,
     subtitle: readString(value.subtitle, 'Exhibition Space'),
     introText: readString(value.introText, defaultGalleryIntro),
+    launchButtonLabel: readString(value.launchButtonLabel, defaultLaunchButtonLabel),
     gallerySlug: slugify(readString(value.gallerySlug) || title),
     theme: normalizeTheme(value.theme),
     idleTimeoutSeconds: clampNumber(value.idleTimeoutSeconds, 45, 1800, 120),
@@ -407,6 +581,86 @@ function normalizeCollection(value: unknown): CollectionDraft {
 
 function getRequestedViewMode(hash: string): ViewMode {
   return hash === '#studio' ? 'studio' : 'gallery';
+}
+
+function readOptionalBoolean(value: unknown): boolean | null {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+
+    if (['1', 'true', 'yes', 'on', 'kiosk'].includes(normalized)) {
+      return true;
+    }
+
+    if (['0', 'false', 'no', 'off', 'curator', 'editor'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return null;
+}
+
+function getRequestedCollectionSlug(search: string): string | null {
+  try {
+    const raw = new URLSearchParams(search).get('collection');
+
+    if (!raw) {
+      return null;
+    }
+
+    // slugify strips path separators, dots, and other unsafe characters, so the
+    // resulting `data/<slug>.json` request can never traverse outside the data folder.
+    const slug = slugify(raw);
+    return COLLECTION_SLUG_PATTERN.test(slug) ? slug : null;
+  } catch {
+    return null;
+  }
+}
+
+function getRequestedKioskMode(search: string): boolean | null {
+  try {
+    const params = new URLSearchParams(search);
+    const role = params.get('role');
+
+    if (role !== null) {
+      const roleValue = readOptionalBoolean(role);
+
+      if (roleValue !== null) {
+        return roleValue;
+      }
+    }
+
+    if (params.has('kiosk')) {
+      const kioskValue = params.get('kiosk') ?? '';
+
+      if (kioskValue.trim() === '') {
+        return true;
+      }
+
+      return readOptionalBoolean(kioskValue);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredKioskMode(): boolean | null {
+  try {
+    const value = window.localStorage.getItem(KIOSK_MODE_STORAGE_KEY);
+
+    if (value === null) {
+      return null;
+    }
+
+    return value === 'true';
+  } catch {
+    return null;
+  }
 }
 
 function formatCountdown(secondsRemaining: number | null) {
@@ -420,14 +674,16 @@ function formatCountdown(secondsRemaining: number | null) {
 }
 
 function createThemeStyle(theme: CollectionTheme): CSSProperties {
+  const hazeMultiplier = theme.hazeIntensity / 100;
+
   return {
     '--theme-background-top': theme.backgroundTop,
     '--theme-background-mid': theme.backgroundMid,
     '--theme-background-bottom': theme.backgroundBottom,
-    '--theme-cloud-one-soft': hexToRgba(theme.cloudOne, 0.18),
-    '--theme-cloud-two-soft': hexToRgba(theme.cloudTwo, 0.22),
-    '--theme-halo-one': hexToRgba(theme.cloudOne, 0.24),
-    '--theme-halo-two': hexToRgba(theme.cloudTwo, 0.28),
+    '--theme-cloud-one-soft': hexToRgba(theme.cloudOne, 0.18 * hazeMultiplier),
+    '--theme-cloud-two-soft': hexToRgba(theme.cloudTwo, 0.22 * hazeMultiplier),
+    '--theme-halo-one': hexToRgba(theme.cloudOne, 0.24 * hazeMultiplier),
+    '--theme-halo-two': hexToRgba(theme.cloudTwo, 0.28 * hazeMultiplier),
     '--theme-launch-button-color': theme.launchButtonColor,
     '--theme-launch-button-text': getReadableTextColor(theme.launchButtonColor),
     '--theme-launch-button-shadow': hexToRgba(theme.launchButtonColor, 0.24),
@@ -445,6 +701,8 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('gallery');
   const [collection, setCollection] = useState<CollectionDraft | null>(null);
   const [seedCollection, setSeedCollection] = useState<CollectionDraft | null>(null);
+  const [followRemote, setFollowRemote] = useState(false);
+  const [collectionStorageKey, setCollectionStorageKey] = useState(STORAGE_KEY);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [viewerKey, setViewerKey] = useState(0);
@@ -454,6 +712,16 @@ function App() {
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isCardEditorOpen, setIsCardEditorOpen] = useState(false);
   const [isUnlockGestureActive, setIsUnlockGestureActive] = useState(false);
+  const [isPinPromptOpen, setIsPinPromptOpen] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinAttempts, setPinAttempts] = useState(0);
+  const [curatorPin, setCuratorPin] = useState<string | null>(null);
+  const [isPinSetupOpen, setIsPinSetupOpen] = useState(false);
+  const [pinSetupValue, setPinSetupValue] = useState('');
+  const [pinSetupConfirm, setPinSetupConfirm] = useState('');
+  const [pinSetupError, setPinSetupError] = useState<string | null>(null);
+  const [pinSetupStep, setPinSetupStep] = useState<'create' | 'confirm'>('create');
   const [settingsTab, setSettingsTab] = useState<StudioSettingsTab>('details');
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const unlockHoldTimerRef = useRef<number | null>(null);
@@ -469,32 +737,97 @@ function App() {
         setStatus('loading');
         setErrorMessage('');
 
-        let seed = normalizeCollection(fallbackCollectionSeed);
+        const search = window.location.search;
+        const requestedSlug = getRequestedCollectionSlug(search);
+        const requestedKioskMode = getRequestedKioskMode(search);
+        const collectionFile = requestedSlug ? `data/${requestedSlug}.json` : DEFAULT_COLLECTION_FILE;
+        const storageKey = requestedSlug ? `${STORAGE_KEY}:${requestedSlug}` : STORAGE_KEY;
+
+        // Load kiosk-config.json once; it seeds the curator PIN and can set a fleet-wide kiosk mode.
+        let kioskConfig: KioskConfig | null = null;
 
         try {
-          const response = await fetch(resolvePublicPath('data/collection.json'));
+          const configResponse = await fetch(resolvePublicPath(KIOSK_CONFIG_PATH), { cache: 'no-store' });
 
-          if (response.ok) {
-            seed = normalizeCollection(await response.json());
+          if (configResponse.ok) {
+            kioskConfig = (await configResponse.json()) as KioskConfig;
           }
         } catch {
-          setFeedback({
-            tone: 'normal',
-            message: 'Loaded embedded sample collection because the runtime JSON could not be fetched.'
-          });
+          // No kiosk-config.json (or it was invalid); non-fatal.
         }
 
-        let initialCollection = seed;
-        const storedValue = window.localStorage.getItem(STORAGE_KEY);
+        // Resolve kiosk "follow remote" mode. Precedence: URL param (persisted) > device flag > config default.
+        const storedKioskMode = readStoredKioskMode();
+        let followRemoteMode: boolean;
 
-        if (storedValue) {
+        if (requestedKioskMode !== null) {
+          followRemoteMode = requestedKioskMode;
+
           try {
-            initialCollection = normalizeCollection(JSON.parse(storedValue));
+            window.localStorage.setItem(KIOSK_MODE_STORAGE_KEY, requestedKioskMode ? 'true' : 'false');
           } catch {
-            setFeedback({
-              tone: 'error',
-              message: 'Saved browser data was invalid and has been replaced with the sample collection.'
-            });
+            // Ignore storage failures; the mode still applies for this session.
+          }
+        } else if (storedKioskMode !== null) {
+          followRemoteMode = storedKioskMode;
+        } else {
+          followRemoteMode = readOptionalBoolean(kioskConfig?.kioskMode ?? kioskConfig?.followRemote) ?? false;
+        }
+
+        // Fetch the published collection (cache-busted so kiosks always see the latest revision).
+        let seed = await fetchCollectionSeed(collectionFile);
+        let missingNamedCollection = false;
+
+        if (!seed && requestedSlug) {
+          // A named collection that is missing or served as a non-JSON fallback page: use the default.
+          missingNamedCollection = true;
+          seed = await fetchCollectionSeed(DEFAULT_COLLECTION_FILE);
+        }
+
+        let usedEmbeddedFallback = false;
+
+        if (!seed) {
+          seed = normalizeCollection(fallbackCollectionSeed);
+          usedEmbeddedFallback = true;
+        }
+
+        // In follow-remote (kiosk) mode the published JSON is the source of truth, so local edits never shadow it.
+        let initialCollection = seed;
+
+        if (!followRemoteMode) {
+          const storedValue = window.localStorage.getItem(storageKey);
+
+          if (storedValue) {
+            try {
+              initialCollection = normalizeCollection(JSON.parse(storedValue));
+            } catch {
+              setFeedback({
+                tone: 'error',
+                message: 'Saved browser data was invalid and has been replaced with the sample collection.'
+              });
+            }
+          }
+        }
+
+        let resolvedPin = window.localStorage.getItem(CURATOR_PIN_STORAGE_KEY) ?? '';
+
+        if (!resolvedPin && kioskConfig) {
+          const configPin = typeof kioskConfig.curatorPin === 'string' ? kioskConfig.curatorPin.trim() : '';
+
+          if (CURATOR_PIN_PATTERN.test(configPin)) {
+            resolvedPin = configPin;
+          }
+        }
+
+        if (!resolvedPin && CURATOR_PIN_PATTERN.test(CURATOR_PIN_ENV_DEFAULT)) {
+          resolvedPin = CURATOR_PIN_ENV_DEFAULT;
+        }
+
+        if (resolvedPin) {
+          try {
+            window.localStorage.setItem(CURATOR_PIN_STORAGE_KEY, resolvedPin);
+          } catch {
+            // Ignore storage failures; the resolved PIN still applies for this session.
           }
         }
 
@@ -502,6 +835,26 @@ function App() {
           return;
         }
 
+        if (missingNamedCollection && requestedSlug) {
+          setFeedback({
+            tone: 'error',
+            message: `Collection "${requestedSlug}" was not found. Loaded the default collection instead.`
+          });
+        } else if (usedEmbeddedFallback) {
+          setFeedback({
+            tone: 'normal',
+            message: 'Loaded embedded sample collection because the runtime JSON could not be fetched.'
+          });
+        } else if (followRemoteMode) {
+          setFeedback({
+            tone: 'normal',
+            message: 'Kiosk mode is on: this device always loads the published collection and does not save local edits.'
+          });
+        }
+
+        setFollowRemote(followRemoteMode);
+        setCollectionStorageKey(storageKey);
+        setCuratorPin(resolvedPin || null);
         setSeedCollection(seed);
         setCollection(initialCollection);
         setSelectedEntryId(initialCollection.entries[0]?.id ?? null);
@@ -626,8 +979,12 @@ function App() {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(collection, null, 2));
-  }, [collection, status]);
+    if (followRemote) {
+      return;
+    }
+
+    window.localStorage.setItem(collectionStorageKey, JSON.stringify(collection, null, 2));
+  }, [collection, status, followRemote, collectionStorageKey]);
 
   useEffect(() => {
     if (!collection) {
@@ -776,12 +1133,139 @@ function App() {
 
     cancelUnlockGesture();
     setIsUnlockGestureActive(true);
-    unlockHoldTimerRef.current = window.setTimeout(unlockStudioAccess, GALLERY_UNLOCK_HOLD_MS);
+    unlockHoldTimerRef.current = window.setTimeout(promptForCuratorPin, GALLERY_UNLOCK_HOLD_MS);
   }
 
   function relockStudioAccess() {
     cancelUnlockGesture();
     setGalleryUnlockExpiresAt(null);
+  }
+
+  function promptForCuratorPin() {
+    cancelUnlockGesture();
+
+    if (!curatorPin) {
+      openCuratorPinSetup();
+      return;
+    }
+
+    setPinValue('');
+    setPinError(null);
+    setIsPinPromptOpen(true);
+  }
+
+  function closeCuratorPinPrompt() {
+    setIsPinPromptOpen(false);
+    setPinValue('');
+    setPinError(null);
+  }
+
+  function openCuratorPinSetup() {
+    setPinSetupValue('');
+    setPinSetupConfirm('');
+    setPinSetupError(null);
+    setPinSetupStep('create');
+    setIsPinSetupOpen(true);
+  }
+
+  function closeCuratorPinSetup() {
+    setIsPinSetupOpen(false);
+    setPinSetupValue('');
+    setPinSetupConfirm('');
+    setPinSetupError(null);
+    setPinSetupStep('create');
+  }
+
+  function backToCreatePinStep() {
+    setPinSetupConfirm('');
+    setPinSetupError(null);
+    setPinSetupStep('create');
+  }
+
+  function advanceCuratorPinSetup() {
+    if (pinSetupStep === 'create') {
+      if (!CURATOR_PIN_PATTERN.test(pinSetupValue)) {
+        setPinSetupError('Choose a PIN of 4 to 8 digits.');
+        return;
+      }
+
+      setPinSetupConfirm('');
+      setPinSetupError(null);
+      setPinSetupStep('confirm');
+      return;
+    }
+
+    if (pinSetupConfirm !== pinSetupValue) {
+      setPinSetupError('The two PINs do not match.');
+      setPinSetupConfirm('');
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(CURATOR_PIN_STORAGE_KEY, pinSetupValue);
+    } catch {
+      // Ignore storage failures; the PIN still applies for this session.
+    }
+
+    const wasUnlocked = isStudioUnlocked;
+    setCuratorPin(pinSetupValue);
+    setPinAttempts(0);
+    closeCuratorPinSetup();
+
+    if (wasUnlocked) {
+      setFeedback({ tone: 'normal', message: 'Curator PIN updated for this machine.' });
+    } else {
+      unlockStudioAccess();
+    }
+  }
+
+  async function reportFailedPinAttempt(attemptNumber: number) {
+    const payload = {
+      type: 'curator-pin-failure',
+      recipient: PIN_ALERT_EMAIL,
+      attemptNumber,
+      kiosk: collection?.title ?? 'Unknown kiosk',
+      gallerySlug: collection?.gallerySlug ?? '',
+      timestamp: new Date().toISOString(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      page: typeof window !== 'undefined' ? window.location.href : ''
+    };
+
+    if (!PIN_ALERT_ENDPOINT) {
+      console.warn(
+        `[curator-pin] Failed attempt #${attemptNumber}. Set VITE_PIN_ALERT_ENDPOINT to email ${PIN_ALERT_EMAIL}.`,
+        payload
+      );
+      return;
+    }
+
+    try {
+      await fetch(PIN_ALERT_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+      });
+    } catch (error) {
+      console.warn('[curator-pin] Could not deliver the PIN alert.', error);
+    }
+  }
+
+  function attemptCuratorUnlock() {
+    if (curatorPin !== null && pinValue === curatorPin) {
+      setIsPinPromptOpen(false);
+      setPinValue('');
+      setPinError(null);
+      setPinAttempts(0);
+      unlockStudioAccess();
+      return;
+    }
+
+    const nextAttempts = pinAttempts + 1;
+    setPinAttempts(nextAttempts);
+    setPinValue('');
+    setPinError('Incorrect PIN. This failed attempt has been logged and reported to the curator.');
+    void reportFailedPinAttempt(nextAttempts);
   }
 
   function openCuratorGuide() {
@@ -973,7 +1457,7 @@ function App() {
     reader.readAsText(file);
   }
 
-  function resetToSample() {
+  function redeployDefaultGallery() {
     const nextCollection = normalizeCollection(seedCollection ?? fallbackCollectionSeed);
     setCollection(nextCollection);
     setSelectedEntryId(nextCollection.entries[0]?.id ?? null);
@@ -982,7 +1466,27 @@ function App() {
     setIsCollectionModalOpen(false);
     setIsRecordingHotkey(false);
     setViewerKey((currentValue) => currentValue + 1);
-    setFeedback({ tone: 'normal', message: 'Restored the sample collection.' });
+    setFeedback({ tone: 'normal', message: 'Redeployed the default gallery.' });
+  }
+
+  function discardGallery() {
+    const shouldDiscard = window.confirm(
+      'Discard the current gallery? This clears every card. You can bring back the built-in default with Redeploy Default, but custom changes you have not exported will be lost.'
+    );
+
+    if (!shouldDiscard) {
+      return;
+    }
+
+    const nextCollection = normalizeCollection(emptyCollectionSeed);
+    setCollection(nextCollection);
+    setSelectedEntryId(null);
+    setActiveEntryId(null);
+    setIsCardEditorOpen(false);
+    setIsCollectionModalOpen(false);
+    setIsRecordingHotkey(false);
+    setViewerKey((currentValue) => currentValue + 1);
+    setFeedback({ tone: 'normal', message: 'Discarded the gallery. Redeploy Default restores the stashed exhibit.' });
   }
 
   function openViewer(entryId: string) {
@@ -1081,8 +1585,14 @@ function App() {
               <ActionButton icon={Upload} tone="quiet" onClick={() => importInputRef.current?.click()}>
                 Import
               </ActionButton>
-              <ActionButton icon={RefreshCcw} tone="quiet" onClick={resetToSample}>
-                Restore Sample
+              <ActionButton icon={RefreshCcw} tone="quiet" onClick={redeployDefaultGallery}>
+                Redeploy Default
+              </ActionButton>
+              <ActionButton icon={Trash2} tone="quiet" onClick={discardGallery}>
+                Discard Gallery
+              </ActionButton>
+              <ActionButton icon={KeyRound} tone="quiet" onClick={openCuratorPinSetup}>
+                Change PIN
               </ActionButton>
 
               <div className={`status-pill ${feedback?.tone === 'error' ? 'status-pill-error' : ''}`}>
@@ -1144,6 +1654,10 @@ function App() {
                     index={index + 1}
                     isActive={entry.id === selectedEntry?.id}
                     onSelect={() => setSelectedEntryId(entry.id)}
+                    onEdit={() => {
+                      setSelectedEntryId(entry.id);
+                      setIsCardEditorOpen(true);
+                    }}
                     onRemove={() => removeEntry(entry.id)}
                   />
                 ))}
@@ -1188,14 +1702,21 @@ function App() {
             </section>
 
             <section className="gallery-grid">
-              {collection.entries.map((entry) => (
-                <GalleryCard
-                  key={entry.id}
-                  entry={entry}
-                  subtitle={collection.subtitle}
-                  onLaunch={() => openViewer(entry.id)}
-                />
-              ))}
+              {collection.entries.length > 0 ? (
+                collection.entries.map((entry) => (
+                  <GalleryCard
+                    key={entry.id}
+                    entry={entry}
+                    subtitle={collection.subtitle}
+                    launchLabel={collection.launchButtonLabel}
+                    onLaunch={() => openViewer(entry.id)}
+                  />
+                ))
+              ) : (
+                <p className="gallery-empty-note">
+                  This gallery has been discarded. Unlock the editor to redeploy the default exhibit or build a new one.
+                </p>
+              )}
             </section>
           </>
         )}
@@ -1232,6 +1753,7 @@ function App() {
                   src={activeEntry.destinationUrl || 'about:blank'}
                   loading="eager"
                   referrerPolicy="strict-origin-when-cross-origin"
+                  sandbox="allow-scripts allow-same-origin"
                 />
               </div>
 
@@ -1240,7 +1762,11 @@ function App() {
                 <section className="viewer-copy">
                   <p className="micro-label">Author</p>
                   <h4>{activeEntry.author || 'Author name'}</h4>
-                  <p>{activeEntry.description || 'Add short descriptive copy in the editor.'}</p>
+                  <p>
+                    {activeEntry.longDescription ||
+                      activeEntry.description ||
+                      'Add a longer project description in the editor.'}
+                  </p>
                 </section>
 
                 <section className="viewer-copy">
@@ -1260,6 +1786,113 @@ function App() {
         accept="application/json"
         onChange={importCollectionFile}
       />
+
+      {isPinPromptOpen ? (
+        <StudioModal
+          kicker="Curator Access"
+          title="Enter curator PIN"
+          description="The gallery editor is protected. Enter the curator PIN to unlock editing on this kiosk."
+          closeOnOverlay={false}
+          onClose={closeCuratorPinPrompt}
+        >
+          <div className="pin-pad-shell">
+            <PinPad
+              value={pinValue}
+              onChange={(next) => {
+                setPinValue(next);
+                if (pinError) {
+                  setPinError(null);
+                }
+              }}
+              onEnter={attemptCuratorUnlock}
+              maxLength={8}
+              ariaLabel="Curator PIN entry"
+            />
+
+            {pinError ? (
+              <p className="pin-error" role="alert">
+                {pinError}
+              </p>
+            ) : null}
+
+            <div className="pin-actions">
+              <button type="button" className="pill-button pill-button-soft" onClick={closeCuratorPinPrompt}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="pill-button"
+                onClick={attemptCuratorUnlock}
+                disabled={pinValue.length < 4}
+              >
+                Unlock Editor
+              </button>
+            </div>
+          </div>
+        </StudioModal>
+      ) : null}
+
+      {isPinSetupOpen ? (
+        <StudioModal
+          kicker="Curator Access"
+          title={curatorPin ? 'Change curator PIN' : 'Set curator PIN'}
+          description={
+            curatorPin
+              ? 'Update the curator PIN stored on this kiosk machine.'
+              : 'This machine has no curator PIN yet. Set one to protect the gallery editor.'
+          }
+          closeOnOverlay={false}
+          onClose={closeCuratorPinSetup}
+        >
+          <div className="pin-pad-shell">
+            <p className="pin-step-label">
+              {pinSetupStep === 'create' ? 'Enter a new PIN (4–8 digits)' : 'Re-enter the PIN to confirm'}
+            </p>
+
+            <PinPad
+              value={pinSetupStep === 'create' ? pinSetupValue : pinSetupConfirm}
+              onChange={(next) => {
+                if (pinSetupStep === 'create') {
+                  setPinSetupValue(next);
+                } else {
+                  setPinSetupConfirm(next);
+                }
+
+                if (pinSetupError) {
+                  setPinSetupError(null);
+                }
+              }}
+              onEnter={advanceCuratorPinSetup}
+              maxLength={8}
+              ariaLabel={pinSetupStep === 'create' ? 'New curator PIN' : 'Confirm curator PIN'}
+            />
+
+            {pinSetupError ? (
+              <p className="pin-error" role="alert">
+                {pinSetupError}
+              </p>
+            ) : null}
+
+            <div className="pin-actions">
+              <button
+                type="button"
+                className="pill-button pill-button-soft"
+                onClick={pinSetupStep === 'create' ? closeCuratorPinSetup : backToCreatePinStep}
+              >
+                {pinSetupStep === 'create' ? 'Cancel' : 'Back'}
+              </button>
+              <button
+                type="button"
+                className="pill-button"
+                onClick={advanceCuratorPinSetup}
+                disabled={(pinSetupStep === 'create' ? pinSetupValue : pinSetupConfirm).length < 4}
+              >
+                {pinSetupStep === 'create' ? 'Next' : curatorPin ? 'Save PIN' : 'Set PIN & Unlock'}
+              </button>
+            </div>
+          </div>
+        </StudioModal>
+      ) : null}
 
       {currentViewMode === 'studio' && isCollectionModalOpen ? (
         <StudioModal
@@ -1310,6 +1943,15 @@ function App() {
                     value={collection.subtitle}
                     onChange={(event) => updateCollectionField('subtitle', event.target.value)}
                     placeholder="Subtitle"
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Launch button label</span>
+                  <input
+                    value={collection.launchButtonLabel}
+                    onChange={(event) => updateCollectionField('launchButtonLabel', event.target.value)}
+                    placeholder="Launch page"
                   />
                 </label>
 
@@ -1368,7 +2010,8 @@ function App() {
               </div>
 
               <p className="panel-copy">
-                These colors drive the background wash and the two cloud-like haze layers behind the exhibition.
+                These colors drive the background wash and the two cloud-like haze layers behind the exhibition. Lower the
+                haze intensity to soften those layers, or set it to zero to remove them completely.
               </p>
 
               <div className="theme-grid">
@@ -1419,6 +2062,21 @@ function App() {
                     updateCollectionField('theme', {
                       ...collection.theme,
                       cloudTwo: nextValue
+                    })
+                  }
+                />
+              </div>
+
+              <div className="theme-grid">
+                <RangeField
+                  label="Haze intensity"
+                  value={collection.theme.hazeIntensity}
+                  min={0}
+                  max={100}
+                  onChange={(nextValue) =>
+                    updateCollectionField('theme', {
+                      ...collection.theme,
+                      hazeIntensity: nextValue
                     })
                   }
                 />
@@ -1579,11 +2237,21 @@ function App() {
               </label>
 
               <label className="field field-span-full">
-                <span>Short description</span>
+                <span>Short description (card)</span>
                 <textarea
                   value={selectedEntry.description}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'description', event.target.value)}
-                  placeholder="Short description"
+                  placeholder="Short description shown on the gallery card"
+                />
+              </label>
+
+              <label className="field field-span-full">
+                <span>Long description (project page)</span>
+                <textarea
+                  className="long-description-input"
+                  value={readString(selectedEntry.longDescription)}
+                  onChange={(event) => updateEntryField(selectedEntry.id, 'longDescription', event.target.value)}
+                  placeholder="Longer description shown on the project page when the card is launched"
                 />
               </label>
             </div>
@@ -1613,10 +2281,11 @@ interface EntryListItemProps {
   index: number;
   isActive: boolean;
   onSelect: () => void;
+  onEdit: () => void;
   onRemove: () => void;
 }
 
-function EntryListItem({ entry, index, isActive, onSelect, onRemove }: EntryListItemProps) {
+function EntryListItem({ entry, index, isActive, onSelect, onEdit, onRemove }: EntryListItemProps) {
   return (
     <article className={`entry-list-item ${isActive ? 'is-active' : ''}`}>
       <button className="entry-select" type="button" onClick={onSelect}>
@@ -1637,9 +2306,15 @@ function EntryListItem({ entry, index, isActive, onSelect, onRemove }: EntryList
         </div>
       </button>
 
-      <button className="entry-remove" type="button" onClick={onRemove} aria-label={`Remove ${entry.title}`}>
-        Remove
-      </button>
+      <div className="entry-item-actions">
+        <button className="entry-edit" type="button" onClick={onEdit} aria-label={`Edit ${entry.title}`}>
+          <PencilLine size={15} strokeWidth={2} />
+          <span>Edit</span>
+        </button>
+        <button className="entry-remove" type="button" onClick={onRemove} aria-label={`Remove ${entry.title}`}>
+          Remove
+        </button>
+      </div>
     </article>
   );
 }
@@ -1647,15 +2322,17 @@ function EntryListItem({ entry, index, isActive, onSelect, onRemove }: EntryList
 interface GalleryCardProps {
   entry: CollectionEntry;
   subtitle: string;
+  launchLabel: string;
   onLaunch: () => void;
 }
 
 interface GalleryCardContentProps {
   entry: CollectionEntry;
   subtitle: string;
+  launchLabel: string;
 }
 
-function GalleryCardContent({ entry, subtitle }: GalleryCardContentProps) {
+function GalleryCardContent({ entry, subtitle, launchLabel }: GalleryCardContentProps) {
   return (
     <>
       <GalleryCardPreviewImage src={readString(entry.previewImageUrl)} alt={`${entry.title} preview image`} />
@@ -1667,7 +2344,7 @@ function GalleryCardContent({ entry, subtitle }: GalleryCardContentProps) {
       </div>
 
       <div className="gallery-card-footer">
-        <span className="gallery-launch-button">Launch page</span>
+        <span className="gallery-launch-button">{launchLabel.trim() || 'Launch page'}</span>
         {shouldRenderQrCode(entry) ? (
           <div className="gallery-card-qr">
             <QrPreview src={entry.qrImageUrl} alt={`${entry.title} QR code`} compact />
@@ -1706,7 +2383,7 @@ function GalleryCardPreviewImage({ src, alt }: GalleryCardPreviewImageProps) {
   );
 }
 
-function GalleryCard({ entry, subtitle, onLaunch }: GalleryCardProps) {
+function GalleryCard({ entry, subtitle, launchLabel, onLaunch }: GalleryCardProps) {
   return (
     <button
       className="gallery-card"
@@ -1714,7 +2391,7 @@ function GalleryCard({ entry, subtitle, onLaunch }: GalleryCardProps) {
       onClick={onLaunch}
       disabled={!entry.destinationUrl.trim()}
     >
-      <GalleryCardContent entry={entry} subtitle={subtitle} />
+      <GalleryCardContent entry={entry} subtitle={subtitle} launchLabel={launchLabel} />
     </button>
   );
 }
@@ -1971,6 +2648,112 @@ function MetricTile({ icon: Icon, label, value }: MetricTileProps) {
       <div>
         <p>{label}</p>
         <strong>{value}</strong>
+      </div>
+    </div>
+  );
+}
+
+interface PinPadProps {
+  value: string;
+  onChange: (next: string) => void;
+  onEnter?: () => void;
+  maxLength?: number;
+  ariaLabel?: string;
+}
+
+function PinPad({ value, onChange, onEnter, maxLength = 8, ariaLabel = 'PIN entry' }: PinPadProps) {
+  const padRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    padRef.current?.focus();
+  }, []);
+
+  function refocus() {
+    padRef.current?.focus();
+  }
+
+  function pressDigit(digit: string) {
+    if (value.length >= maxLength) {
+      return;
+    }
+
+    onChange(value + digit);
+    refocus();
+  }
+
+  function backspace() {
+    onChange(value.slice(0, -1));
+    refocus();
+  }
+
+  function clearAll() {
+    onChange('');
+    refocus();
+  }
+
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key >= '0' && event.key <= '9') {
+      event.preventDefault();
+      pressDigit(event.key);
+    } else if (event.key === 'Backspace') {
+      event.preventDefault();
+      backspace();
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      onEnter?.();
+    } else if (event.key === 'Delete') {
+      event.preventDefault();
+      clearAll();
+    }
+  }
+
+  const slotCount = Math.max(value.length, 4);
+
+  return (
+    <div
+      className="pin-pad"
+      ref={padRef}
+      tabIndex={0}
+      role="group"
+      aria-label={ariaLabel}
+      onKeyDown={handleKeyDown}
+    >
+      <div className="pin-pad-display" aria-hidden="true">
+        {Array.from({ length: slotCount }).map((_, index) => (
+          <span key={index} className={`pin-dot ${index < value.length ? 'is-filled' : ''}`} />
+        ))}
+      </div>
+
+      <div className="pin-pad-grid">
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+          <button
+            key={digit}
+            type="button"
+            className="pin-key pin-key-digit"
+            tabIndex={-1}
+            onClick={() => pressDigit(digit)}
+          >
+            <span>{digit}</span>
+          </button>
+        ))}
+
+        <button type="button" className="pin-key pin-key-action" tabIndex={-1} onClick={clearAll} aria-label="Clear PIN">
+          <span>C</span>
+        </button>
+
+        <button type="button" className="pin-key pin-key-digit" tabIndex={-1} onClick={() => pressDigit('0')}>
+          <span>0</span>
+        </button>
+
+        <button
+          type="button"
+          className="pin-key pin-key-action"
+          tabIndex={-1}
+          onClick={backspace}
+          aria-label="Delete last digit"
+        >
+          <Delete size={24} strokeWidth={2} />
+        </button>
       </div>
     </div>
   );

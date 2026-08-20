@@ -1,0 +1,5 @@
+{
+  "_comment": "Per-machine kiosk provisioning. The app reads this file once at startup (uncached). curatorPin: set a 4-8 digit editor PIN for this machine here (or push this file through device management) to establish the PIN on boot without rebuilding. An unprovisioned machine adopts this value and stores it locally; leave it empty (\"\") to require an operator to set the PIN interactively on first startup. Once a machine has a stored PIN, changing it here will not override it unless local storage is cleared; use the studio 'Change PIN' control to rotate a provisioned machine. followRemote: set true to make this machine a display kiosk that always loads the published collection and never saves local edits (same as opening the app with ?kiosk=1); leave false for curator workstations that keep local edits. A ?kiosk=1 or ?kiosk=0 URL parameter, once opened, is remembered on the device and overrides this file.",
+  "curatorPin": "2020",
+  "followRemote": false
+}

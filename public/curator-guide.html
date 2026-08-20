@@ -409,7 +409,44 @@ Showing news stories tagged with "Innovation Studio"</div>
             <li><strong>Restore Sample</strong> replaces the current collection with the sample set.</li>
           </ul>
           <p>Changes save automatically in this browser on this machine. Export the collection if you need a backup or want to move it to another workstation.</p>
+          <p>On a kiosk running in kiosk mode, changes are not saved locally. Update the published collection JSON and redeploy instead.</p>
         </article>
+      </section>
+
+      <section class="glass-panel guide-stack">
+        <div>
+          <p class="micro-label">Collections And Kiosks</p>
+          <h2>Point a kiosk at a collection</h2>
+        </div>
+        <p>One deployment can host more than one collection, and each has its own stable URL. A display kiosk can also be set to always show the latest published collection.</p>
+        <div class="guide-grid">
+          <article class="guide-card guide-stack">
+            <div>
+              <p class="micro-label">Named Collections</p>
+              <h3>Choose a collection by URL</h3>
+            </div>
+            <ul>
+              <li>The default collection loads at the plain gallery URL.</li>
+              <li>Add <strong>?collection=slug</strong> to load a named collection.</li>
+              <li>Each named collection lives at <strong>public/data/&lt;slug&gt;.json</strong> in the deployment.</li>
+              <li>If a collection is missing, the app loads the default collection and shows a notice.</li>
+            </ul>
+            <div class="code-block">https://technobotanist.github.io/IS-WebKiosk/?collection=sample-showcase</div>
+          </article>
+          <article class="guide-card guide-stack">
+            <div>
+              <p class="micro-label">Kiosk Mode</p>
+              <h3>Always follow the published copy</h3>
+            </div>
+            <ul>
+              <li>Add <strong>?kiosk=1</strong> to turn kiosk mode on (<strong>?kiosk=0</strong> turns it off).</li>
+              <li>The machine always loads the published collection and does not save local edits.</li>
+              <li>The setting is remembered on that machine, so you only add it once.</li>
+            </ul>
+            <div class="code-block">https://technobotanist.github.io/IS-WebKiosk/?collection=main&amp;kiosk=1</div>
+          </article>
+        </div>
+        <p>To provision a new kiosk in one step, open a single link that names the collection and turns on kiosk mode. A shortened link can point to that address, so kiosks are configured by opening one short URL.</p>
       </section>
 
       <section class="notice-stack">
