@@ -314,11 +314,14 @@
           <ol>
             <li>In gallery view, press and hold the subtitle text above the gallery title.</li>
             <li>Hold for about 2 seconds.</li>
-            <li>The app will switch to the editor and show an unlock countdown.</li>
+            <li>Enter the configured curator PIN on the on-screen keypad.</li>
+            <li>Select <strong>Unlock Editor</strong>. The app will switch to the editor and show an unlock countdown.</li>
           </ol>
           <ul>
             <li>Select <strong>Relock</strong> when you are done.</li>
             <li>If the timer expires, the app returns to gallery mode automatically.</li>
+            <li>If no PIN is provisioned, the same flow asks you to set and confirm one before unlocking.</li>
+            <li>On a kiosk with kiosk mode on, the editor opens read-only. Edit the published collection JSON, or open the device once with <strong>?kiosk=0</strong> before making local authoring changes.</li>
           </ul>
         </article>
       </section>
@@ -362,6 +365,7 @@
             <li>Use <strong>Preview In Kiosk</strong> to test the live destination.</li>
             <li>Use <strong>Done Editing</strong> to close the card editor.</li>
           </ol>
+          <p>If kiosk mode is on, this workflow is available for review and preview only; collection editing controls are disabled so changes are not mistaken for saved edits.</p>
         </article>
 
         <article class="guide-card guide-stack">
@@ -406,10 +410,11 @@ Showing news stories tagged with "Innovation Studio"</div>
           <ul>
             <li><strong>Export</strong> downloads the current collection as JSON.</li>
             <li><strong>Import</strong> loads a previously exported JSON collection.</li>
-            <li><strong>Restore Sample</strong> replaces the current collection with the sample set.</li>
+            <li><strong>Redeploy Default</strong> replaces the current collection with the published default collection.</li>
+            <li><strong>Discard Gallery</strong> clears every card and leaves the gallery empty until you add cards or redeploy the default.</li>
           </ul>
-          <p>Changes save automatically in this browser on this machine. Export the collection if you need a backup or want to move it to another workstation.</p>
-          <p>On a kiosk running in kiosk mode, changes are not saved locally. Update the published collection JSON and redeploy instead.</p>
+          <p>Changes save automatically in this browser on this machine only when kiosk mode is off. Export the collection if you need a backup or want to move it to another workstation.</p>
+          <p>On a kiosk running in kiosk mode, collection editing controls are read-only. Update the published collection JSON and redeploy instead.</p>
         </article>
       </section>
 
@@ -440,7 +445,7 @@ Showing news stories tagged with "Innovation Studio"</div>
             </div>
             <ul>
               <li>Add <strong>?kiosk=1</strong> to turn kiosk mode on (<strong>?kiosk=0</strong> turns it off).</li>
-              <li>The machine always loads the published collection and does not save local edits.</li>
+              <li>The machine always loads the published collection and collection editing controls are read-only.</li>
               <li>The setting is remembered on that machine, so you only add it once.</li>
             </ul>
             <div class="code-block">https://technobotanist.github.io/IS-WebKiosk/?collection=main&amp;kiosk=1</div>
@@ -456,7 +461,7 @@ Showing news stories tagged with "Innovation Studio"</div>
         </article>
         <article class="notice">
           <strong>Troubleshooting</strong>
-          <p>If the editor does not open, hold the subtitle text slightly longer and make sure you are not clicking a gallery card. If changes disappear, re-import the last exported collection JSON.</p>
+          <p>If the editor does not open, hold the subtitle text slightly longer, make sure you are not clicking a gallery card, and confirm the curator PIN. If editing controls are disabled, kiosk mode is on; use the published JSON or reopen with <strong>?kiosk=0</strong> for local authoring.</p>
         </article>
       </section>
     </main>

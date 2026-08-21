@@ -35,6 +35,7 @@ type LoadState = 'loading' | 'ready' | 'error';
 type ViewMode = 'studio' | 'gallery';
 type FeedbackTone = 'normal' | 'error';
 type StudioSettingsTab = 'details' | 'backdrop' | 'kiosk';
+type ViewerLoadState = 'idle' | 'loading' | 'loaded' | 'slow' | 'error';
 
 interface FeedbackState {
   tone: FeedbackTone;
@@ -50,6 +51,7 @@ interface KioskConfig {
 const STORAGE_KEY = 'webkiosking-innovation-studio-v1';
 const GALLERY_UNLOCK_HOLD_MS = 1800;
 const GALLERY_UNLOCK_WINDOW_MS = 10 * 60 * 1000;
+const VIEWER_LOAD_TIMEOUT_MS = 8000;
 const CURATOR_PIN_STORAGE_KEY = 'webkiosking-curator-pin-v1';
 const KIOSK_CONFIG_PATH = 'kiosk-config.json';
 const DEFAULT_COLLECTION_FILE = 'data/collection.json';
@@ -95,6 +97,11 @@ const defaultGalleryIntro =
 
 const defaultLaunchButtonLabel = 'Launch page';
 
+const defaultIdleTimeoutSeconds = 240;
+
+const kioskReadOnlyMessage =
+  'Kiosk mode is read-only on this device. Edit the published collection JSON, or open with ?kiosk=0 before making local changes.';
+
 const defaultNewEntryDescription =
   'Libraries News:\nShowing news stories tagged with "Innovation Studio"';
 
@@ -122,7 +129,7 @@ const fallbackCollectionSeed: CollectionDraft = {
     cardTitleScale: 100,
     cardBodyScale: 100
   },
-  idleTimeoutSeconds: 120,
+  idleTimeoutSeconds: defaultIdleTimeoutSeconds,
   escapeHotkeys: ['Escape', 'Control+Shift+H'],
   entries: [
     {
@@ -266,7 +273,7 @@ const emptyCollectionSeed: CollectionDraft = {
   gallerySlug: 'untitled-gallery',
   launchButtonLabel: 'Launch page',
   theme: defaultTheme,
-  idleTimeoutSeconds: 120,
+  idleTimeoutSeconds: defaultIdleTimeoutSeconds,
   escapeHotkeys: ['Escape', 'Control+Shift+H'],
   entries: []
 };
@@ -573,7 +580,7 @@ function normalizeCollection(value: unknown): CollectionDraft {
     launchButtonLabel: readString(value.launchButtonLabel, defaultLaunchButtonLabel),
     gallerySlug: slugify(readString(value.gallerySlug) || title),
     theme: normalizeTheme(value.theme),
-    idleTimeoutSeconds: clampNumber(value.idleTimeoutSeconds, 45, 1800, 120),
+    idleTimeoutSeconds: clampNumber(value.idleTimeoutSeconds, 45, 1800, defaultIdleTimeoutSeconds),
     escapeHotkeys: normalizeHotkeys(value.escapeHotkeys),
     entries
   };
@@ -706,6 +713,8 @@ function App() {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [viewerKey, setViewerKey] = useState(0);
+  const [viewerLoadState, setViewerLoadState] = useState<ViewerLoadState>('idle');
+  const [viewerDebugMessage, setViewerDebugMessage] = useState('');
   const [galleryUnlockExpiresAt, setGalleryUnlockExpiresAt] = useState<number | null>(null);
   const [unlockSecondsRemaining, setUnlockSecondsRemaining] = useState<number | null>(null);
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
@@ -725,9 +734,15 @@ function App() {
   const [settingsTab, setSettingsTab] = useState<StudioSettingsTab>('details');
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const unlockHoldTimerRef = useRef<number | null>(null);
+  const viewerLoadTokenRef = useRef(0);
+  const viewerLoadProblemRef = useRef(false);
 
   const isStudioUnlocked = galleryUnlockExpiresAt !== null;
   const currentViewMode: ViewMode = isStudioUnlocked && viewMode === 'studio' ? 'studio' : 'gallery';
+  const isEditorReadOnly = followRemote;
+  const editorPersistenceMessage = isEditorReadOnly
+    ? kioskReadOnlyMessage
+    : 'Changes save automatically in this browser until you export or replace the collection.';
 
   useEffect(() => {
     let cancelled = false;
@@ -848,7 +863,7 @@ function App() {
         } else if (followRemoteMode) {
           setFeedback({
             tone: 'normal',
-            message: 'Kiosk mode is on: this device always loads the published collection and does not save local edits.'
+            message: 'Kiosk mode is on: this device always loads the published collection and collection editing is read-only.'
           });
         }
 
@@ -1091,15 +1106,70 @@ function App() {
     collection?.entries.find((entry) => entry.id === selectedEntryId) ?? collection?.entries[0] ?? null;
   const activeEntry = collection?.entries.find((entry) => entry.id === activeEntryId) ?? null;
   const unlockCountdownLabel = formatCountdown(unlockSecondsRemaining);
+  const shouldShowViewerAlert = viewerLoadState === 'slow' || viewerLoadState === 'error';
 
   const idleCountdown = useIdleReset({
     enabled: currentViewMode === 'gallery' && activeEntry !== null && collection !== null,
-    timeoutSeconds: collection?.idleTimeoutSeconds ?? 120,
+    timeoutSeconds: collection?.idleTimeoutSeconds ?? defaultIdleTimeoutSeconds,
     onTimeout: () => {
       setActiveEntryId(null);
       setViewerKey((currentValue) => currentValue + 1);
     }
   });
+
+  useEffect(() => {
+    if (currentViewMode !== 'gallery' || !activeEntry) {
+      setViewerLoadState('idle');
+      setViewerDebugMessage('');
+      return;
+    }
+
+    const loadToken = viewerLoadTokenRef.current + 1;
+    viewerLoadTokenRef.current = loadToken;
+    viewerLoadProblemRef.current = false;
+    setViewerLoadState('loading');
+    setViewerDebugMessage('');
+
+    if (activeEntry.destinationUrl.trim()) {
+      void fetch(activeEntry.destinationUrl, { mode: 'no-cors', cache: 'no-store' }).catch((error) => {
+        if (viewerLoadTokenRef.current !== loadToken) {
+          return;
+        }
+
+        viewerLoadTokenRef.current += 1;
+        viewerLoadProblemRef.current = true;
+
+        const message = `Network check failed for ${activeEntry.destinationUrl}.`;
+        setViewerLoadState('error');
+        setViewerDebugMessage(message);
+        console.warn('[kiosk-viewer]', message, {
+          entryId: activeEntry.id,
+          title: activeEntry.title,
+          destinationUrl: activeEntry.destinationUrl,
+          error
+        });
+      });
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (viewerLoadTokenRef.current !== loadToken) {
+        return;
+      }
+
+      const message = `No iframe load event after ${Math.round(VIEWER_LOAD_TIMEOUT_MS / 1000)} seconds for ${activeEntry.destinationUrl}.`;
+      setViewerLoadState('slow');
+      setViewerDebugMessage(message);
+      console.warn('[kiosk-viewer]', message, {
+        entryId: activeEntry.id,
+        title: activeEntry.title,
+        destinationUrl: activeEntry.destinationUrl
+      });
+    }, VIEWER_LOAD_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeEntry, currentViewMode, viewerKey]);
 
   function cancelUnlockGesture() {
     if (unlockHoldTimerRef.current !== null) {
@@ -1306,7 +1376,16 @@ function App() {
     setIsCardEditorOpen(true);
   }
 
+  function showReadOnlyFeedback() {
+    setFeedback({ tone: 'error', message: kioskReadOnlyMessage });
+  }
+
   function updateCollectionField<K extends keyof CollectionDraft>(field: K, value: CollectionDraft[K]) {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     setCollection((currentCollection) => {
       if (!currentCollection) {
         return currentCollection;
@@ -1320,6 +1399,11 @@ function App() {
   }
 
   function updateThemeField<K extends keyof CollectionTheme>(field: K, value: CollectionTheme[K]) {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     setCollection((currentCollection) => {
       if (!currentCollection) {
         return currentCollection;
@@ -1340,6 +1424,11 @@ function App() {
     field: K,
     value: CollectionEntry[K]
   ) {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     setCollection((currentCollection) => {
       if (!currentCollection) {
         return currentCollection;
@@ -1360,6 +1449,11 @@ function App() {
   }
 
   function addEntry() {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     if (!collection) {
       return;
     }
@@ -1372,12 +1466,17 @@ function App() {
   }
 
   function removeEntry(entryId: string) {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     if (!collection) {
       return;
     }
 
     const remainingEntries = collection.entries.filter((entry) => entry.id !== entryId);
-    const nextEntries = remainingEntries.length > 0 ? remainingEntries : [createEntry(1)];
+    const nextEntries = remainingEntries;
     updateCollectionField('entries', nextEntries);
     setSelectedEntryId(nextEntries[0]?.id ?? null);
     setIsCardEditorOpen(false);
@@ -1387,10 +1486,21 @@ function App() {
       setViewerKey((currentValue) => currentValue + 1);
     }
 
-    setFeedback({ tone: 'normal', message: 'Removed kiosk card from this collection.' });
+    setFeedback({
+      tone: 'normal',
+      message:
+        nextEntries.length === 0
+          ? 'Removed the last kiosk card. The gallery is now empty.'
+          : 'Removed kiosk card from this collection.'
+    });
   }
 
   function removeHotkey(hotkey: string) {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     if (!collection) {
       return;
     }
@@ -1417,6 +1527,13 @@ function App() {
 
   function importCollectionFile(event: ChangeEvent<HTMLInputElement>) {
     const target = event.target;
+
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      target.value = '';
+      return;
+    }
+
     const file = target.files?.[0];
 
     if (!file) {
@@ -1458,6 +1575,11 @@ function App() {
   }
 
   function redeployDefaultGallery() {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     const nextCollection = normalizeCollection(seedCollection ?? fallbackCollectionSeed);
     setCollection(nextCollection);
     setSelectedEntryId(nextCollection.entries[0]?.id ?? null);
@@ -1470,6 +1592,11 @@ function App() {
   }
 
   function discardGallery() {
+    if (isEditorReadOnly) {
+      showReadOnlyFeedback();
+      return;
+    }
+
     const shouldDiscard = window.confirm(
       'Discard the current gallery? This clears every card. You can bring back the built-in default with Redeploy Default, but custom changes you have not exported will be lost.'
     );
@@ -1493,6 +1620,30 @@ function App() {
     navigateTo('gallery');
     setActiveEntryId(entryId);
     setViewerKey((currentValue) => currentValue + 1);
+  }
+
+  function handleViewerLoad() {
+    if (viewerLoadProblemRef.current) {
+      return;
+    }
+
+    viewerLoadTokenRef.current += 1;
+    setViewerLoadState('loaded');
+    setViewerDebugMessage('');
+  }
+
+  function handleViewerError() {
+    viewerLoadTokenRef.current += 1;
+    viewerLoadProblemRef.current = true;
+
+    const message = `Iframe reported a load error for ${activeEntry?.destinationUrl || 'unknown destination'}.`;
+    setViewerLoadState('error');
+    setViewerDebugMessage(message);
+    console.warn('[kiosk-viewer]', message, {
+      entryId: activeEntry?.id ?? '',
+      title: activeEntry?.title ?? '',
+      destinationUrl: activeEntry?.destinationUrl ?? ''
+    });
   }
 
   function previewSelectedEntry() {
@@ -1569,7 +1720,7 @@ function App() {
               >
                 Edit Selected Card
               </ActionButton>
-              <ActionButton icon={Plus} tone="soft" onClick={addEntry}>
+              <ActionButton icon={Plus} tone="soft" onClick={addEntry} disabled={isEditorReadOnly}>
                 Add Card
               </ActionButton>
             </div>
@@ -1582,21 +1733,21 @@ function App() {
               <ActionButton icon={Download} tone="quiet" onClick={exportCollection}>
                 Export
               </ActionButton>
-              <ActionButton icon={Upload} tone="quiet" onClick={() => importInputRef.current?.click()}>
+              <ActionButton icon={Upload} tone="quiet" onClick={() => importInputRef.current?.click()} disabled={isEditorReadOnly}>
                 Import
               </ActionButton>
-              <ActionButton icon={RefreshCcw} tone="quiet" onClick={redeployDefaultGallery}>
+              <ActionButton icon={RefreshCcw} tone="quiet" onClick={redeployDefaultGallery} disabled={isEditorReadOnly}>
                 Redeploy Default
               </ActionButton>
-              <ActionButton icon={Trash2} tone="quiet" onClick={discardGallery}>
+              <ActionButton icon={Trash2} tone="quiet" onClick={discardGallery} disabled={isEditorReadOnly}>
                 Discard Gallery
               </ActionButton>
               <ActionButton icon={KeyRound} tone="quiet" onClick={openCuratorPinSetup}>
                 Change PIN
               </ActionButton>
 
-              <div className={`status-pill ${feedback?.tone === 'error' ? 'status-pill-error' : ''}`}>
-                {feedback?.message ?? `${collection.entries.length} cards ready for ${collection.title}`}
+              <div className={`status-pill ${isEditorReadOnly || feedback?.tone === 'error' ? 'status-pill-error' : ''}`}>
+                {isEditorReadOnly ? kioskReadOnlyMessage : feedback?.message ?? `${collection.entries.length} cards ready for ${collection.title}`}
               </div>
             </div>
           </div>
@@ -1604,6 +1755,7 @@ function App() {
           <div className="studio-hero-aside">
             <CollectionProfileCard
               collection={collection}
+              isReadOnly={isEditorReadOnly}
               onUpdateThemeField={updateThemeField}
               onOpenDetails={() => openCollectionSettings('details')}
               onOpenBackdrop={() => openCollectionSettings('backdrop')}
@@ -1624,7 +1776,7 @@ function App() {
                   <p className="panel-copy">Select a card to edit its details, remove it from the gallery, or launch it in the kiosk viewer.</p>
                 </div>
                 <div className="toolbar-actions compact-actions">
-                  <ActionButton icon={Plus} tone="primary" onClick={addEntry}>
+                  <ActionButton icon={Plus} tone="primary" onClick={addEntry} disabled={isEditorReadOnly}>
                     Add Card
                   </ActionButton>
                   <ActionButton
@@ -1653,6 +1805,7 @@ function App() {
                     entry={entry}
                     index={index + 1}
                     isActive={entry.id === selectedEntry?.id}
+                    isReadOnly={isEditorReadOnly}
                     onSelect={() => setSelectedEntryId(entry.id)}
                     onEdit={() => {
                       setSelectedEntryId(entry.id);
@@ -1754,10 +1907,23 @@ function App() {
                   loading="eager"
                   referrerPolicy="strict-origin-when-cross-origin"
                   sandbox="allow-scripts allow-same-origin"
+                  onLoad={handleViewerLoad}
+                  onError={handleViewerError}
                 />
               </div>
 
               <aside className="viewer-sidepanel">
+                {shouldShowViewerAlert ? (
+                  <section className="viewer-copy viewer-alert" role="alert">
+                    <p className="micro-label">Page Status</p>
+                    <h4>{viewerLoadState === 'error' ? 'This page could not be loaded' : 'This page is taking longer than expected'}</h4>
+                    <p>Use the QR code or return to the gallery while staff checks this destination.</p>
+                    <details>
+                      <summary>Debug log</summary>
+                      <div className="url-chip">{viewerDebugMessage || activeEntry.destinationUrl}</div>
+                    </details>
+                  </section>
+                ) : null}
                 {shouldRenderQrCode(activeEntry) ? <QrPreview src={activeEntry.qrImageUrl} alt={`${activeEntry.title} QR code`} /> : null}
                 <section className="viewer-copy">
                   <p className="micro-label">Author</p>
@@ -1898,7 +2064,7 @@ function App() {
         <StudioModal
           kicker="Collection Settings"
           title={collection.title}
-          description="Keep the main workbench focused on card review while editing gallery details, Chromebase behavior, and backdrop treatment here."
+          description={`Keep the main workbench focused on card review while editing gallery details, Chromebase behavior, and backdrop treatment here. ${editorPersistenceMessage}`}
           onClose={() => {
             setIsCollectionModalOpen(false);
             setIsRecordingHotkey(false);
@@ -1934,6 +2100,7 @@ function App() {
                     value={collection.title}
                     onChange={(event) => updateCollectionField('title', event.target.value)}
                     placeholder="Collection title"
+                    disabled={isEditorReadOnly}
                   />
                 </label>
 
@@ -1943,6 +2110,7 @@ function App() {
                     value={collection.subtitle}
                     onChange={(event) => updateCollectionField('subtitle', event.target.value)}
                     placeholder="Subtitle"
+                    disabled={isEditorReadOnly}
                   />
                 </label>
 
@@ -1952,6 +2120,7 @@ function App() {
                     value={collection.launchButtonLabel}
                     onChange={(event) => updateCollectionField('launchButtonLabel', event.target.value)}
                     placeholder="Launch page"
+                    disabled={isEditorReadOnly}
                   />
                 </label>
 
@@ -1961,6 +2130,7 @@ function App() {
                     value={collection.gallerySlug}
                     onChange={(event) => updateCollectionField('gallerySlug', slugify(event.target.value))}
                     placeholder="Gallery slug"
+                    disabled={isEditorReadOnly}
                   />
                 </label>
 
@@ -1978,6 +2148,7 @@ function App() {
                     value={collection.introText}
                     onChange={(event) => updateCollectionField('introText', event.target.value)}
                     placeholder="Intro text"
+                    disabled={isEditorReadOnly}
                   />
                 </label>
               </div>
@@ -2024,6 +2195,7 @@ function App() {
                       backgroundTop: nextValue
                     })
                   }
+                  disabled={isEditorReadOnly}
                 />
                 <ColorField
                   label="Sky middle"
@@ -2034,6 +2206,7 @@ function App() {
                       backgroundMid: nextValue
                     })
                   }
+                  disabled={isEditorReadOnly}
                 />
                 <ColorField
                   label="Sky bottom"
@@ -2044,6 +2217,7 @@ function App() {
                       backgroundBottom: nextValue
                     })
                   }
+                  disabled={isEditorReadOnly}
                 />
                 <ColorField
                   label="Cloud one"
@@ -2054,6 +2228,7 @@ function App() {
                       cloudOne: nextValue
                     })
                   }
+                  disabled={isEditorReadOnly}
                 />
                 <ColorField
                   label="Cloud two"
@@ -2064,6 +2239,7 @@ function App() {
                       cloudTwo: nextValue
                     })
                   }
+                  disabled={isEditorReadOnly}
                 />
               </div>
 
@@ -2079,6 +2255,7 @@ function App() {
                       hazeIntensity: nextValue
                     })
                   }
+                  disabled={isEditorReadOnly}
                 />
               </div>
             </section>
@@ -2103,6 +2280,7 @@ function App() {
                       min={45}
                       max={1800}
                       value={collection.idleTimeoutSeconds}
+                      disabled={isEditorReadOnly}
                       onChange={(event) =>
                         updateCollectionField(
                           'idleTimeoutSeconds',
@@ -2123,6 +2301,7 @@ function App() {
                   <ActionButton
                     icon={Keyboard}
                     tone={isRecordingHotkey ? 'primary' : 'soft'}
+                    disabled={isEditorReadOnly}
                     onClick={() => {
                       const nextRecordingState = !isRecordingHotkey;
                       setIsRecordingHotkey(nextRecordingState);
@@ -2146,7 +2325,7 @@ function App() {
                   {collection.escapeHotkeys.map((hotkey) => (
                     <span key={hotkey} className="hotkey-chip">
                       {hotkey}
-                      <button type="button" aria-label={`Remove ${hotkey}`} onClick={() => removeHotkey(hotkey)}>
+                      <button type="button" aria-label={`Remove ${hotkey}`} onClick={() => removeHotkey(hotkey)} disabled={isEditorReadOnly}>
                         x
                       </button>
                     </span>
@@ -2162,7 +2341,7 @@ function App() {
         <StudioModal
           kicker="Gallery Card Editor"
           title={selectedEntry.title || 'Untitled page'}
-          description="Edit the selected kiosk card in a focused form. Changes save automatically in this browser until you export or replace the collection."
+          description={`Edit the selected kiosk card in a focused form. ${editorPersistenceMessage}`}
           onClose={() => setIsCardEditorOpen(false)}
           closeOnOverlay={false}
         >
@@ -2172,7 +2351,7 @@ function App() {
                 <p className="micro-label">Selected Card</p>
                 <h3>{selectedEntry.author || 'Jane Doe'}</h3>
               </div>
-              <span className="glass-badge">Autosaves in browser</span>
+              <span className="glass-badge">{isEditorReadOnly ? 'Read-only kiosk mode' : 'Autosaves in browser'}</span>
             </div>
 
             <div className="field-grid two-column-grid">
@@ -2182,6 +2361,7 @@ function App() {
                   value={selectedEntry.title}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'title', event.target.value)}
                   placeholder="Card title"
+                  disabled={isEditorReadOnly}
                 />
               </label>
 
@@ -2191,6 +2371,7 @@ function App() {
                   value={selectedEntry.author}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'author', event.target.value)}
                   placeholder="Author name"
+                  disabled={isEditorReadOnly}
                 />
               </label>
 
@@ -2200,6 +2381,7 @@ function App() {
                   value={selectedEntry.destinationUrl}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'destinationUrl', event.target.value)}
                   placeholder="Destination public URL"
+                  disabled={isEditorReadOnly}
                 />
               </label>
 
@@ -2213,6 +2395,7 @@ function App() {
                     type="checkbox"
                     checked={readBoolean(selectedEntry.showQrCode)}
                     onChange={(event) => updateEntryField(selectedEntry.id, 'showQrCode', event.target.checked)}
+                    disabled={isEditorReadOnly}
                   />
                 </span>
               </label>
@@ -2223,7 +2406,7 @@ function App() {
                   value={readString(selectedEntry.qrImageUrl)}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'qrImageUrl', event.target.value)}
                   placeholder="QR image URL"
-                  disabled={!readBoolean(selectedEntry.showQrCode)}
+                  disabled={isEditorReadOnly || !readBoolean(selectedEntry.showQrCode)}
                 />
               </label>
 
@@ -2233,6 +2416,7 @@ function App() {
                   value={readString(selectedEntry.previewImageUrl)}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'previewImageUrl', event.target.value)}
                   placeholder="Preview image URL"
+                  disabled={isEditorReadOnly}
                 />
               </label>
 
@@ -2242,6 +2426,7 @@ function App() {
                   value={selectedEntry.description}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'description', event.target.value)}
                   placeholder="Short description shown on the gallery card"
+                  disabled={isEditorReadOnly}
                 />
               </label>
 
@@ -2252,6 +2437,7 @@ function App() {
                   value={readString(selectedEntry.longDescription)}
                   onChange={(event) => updateEntryField(selectedEntry.id, 'longDescription', event.target.value)}
                   placeholder="Longer description shown on the project page when the card is launched"
+                  disabled={isEditorReadOnly}
                 />
               </label>
             </div>
@@ -2280,12 +2466,13 @@ interface EntryListItemProps {
   entry: CollectionEntry;
   index: number;
   isActive: boolean;
+  isReadOnly: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onRemove: () => void;
 }
 
-function EntryListItem({ entry, index, isActive, onSelect, onEdit, onRemove }: EntryListItemProps) {
+function EntryListItem({ entry, index, isActive, isReadOnly, onSelect, onEdit, onRemove }: EntryListItemProps) {
   return (
     <article className={`entry-list-item ${isActive ? 'is-active' : ''}`}>
       <button className="entry-select" type="button" onClick={onSelect}>
@@ -2311,7 +2498,7 @@ function EntryListItem({ entry, index, isActive, onSelect, onEdit, onRemove }: E
           <PencilLine size={15} strokeWidth={2} />
           <span>Edit</span>
         </button>
-        <button className="entry-remove" type="button" onClick={onRemove} aria-label={`Remove ${entry.title}`}>
+        <button className="entry-remove" type="button" onClick={onRemove} aria-label={`Remove ${entry.title}`} disabled={isReadOnly}>
           Remove
         </button>
       </div>
@@ -2425,9 +2612,10 @@ interface ColorFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
-function ColorField({ label, value, onChange }: ColorFieldProps) {
+function ColorField({ label, value, onChange, disabled = false }: ColorFieldProps) {
   return (
     <label className="color-field">
       <span>{label}</span>
@@ -2438,6 +2626,7 @@ function ColorField({ label, value, onChange }: ColorFieldProps) {
           value={value}
           onChange={(event) => onChange(event.target.value)}
           aria-label={label}
+          disabled={disabled}
         />
         <span className="color-value">{value}</span>
       </div>
@@ -2451,9 +2640,10 @@ interface RangeFieldProps {
   min: number;
   max: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
 }
 
-function RangeField({ label, value, min, max, onChange }: RangeFieldProps) {
+function RangeField({ label, value, min, max, onChange, disabled = false }: RangeFieldProps) {
   return (
     <label className="range-field">
       <span>{label}</span>
@@ -2467,6 +2657,7 @@ function RangeField({ label, value, min, max, onChange }: RangeFieldProps) {
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
           aria-label={label}
+          disabled={disabled}
         />
         <span className="range-value">{value}%</span>
       </div>
@@ -2522,6 +2713,7 @@ function SettingsTabButton({ icon: Icon, label, isActive, onClick }: SettingsTab
 
 interface CollectionProfileCardProps {
   collection: CollectionDraft;
+  isReadOnly: boolean;
   onUpdateThemeField: <K extends keyof CollectionTheme>(field: K, value: CollectionTheme[K]) => void;
   onOpenDetails: () => void;
   onOpenBackdrop: () => void;
@@ -2530,6 +2722,7 @@ interface CollectionProfileCardProps {
 
 function CollectionProfileCard({
   collection,
+  isReadOnly,
   onUpdateThemeField,
   onOpenDetails,
   onOpenBackdrop,
@@ -2581,6 +2774,7 @@ function CollectionProfileCard({
             label="Launch button color"
             value={collection.theme.launchButtonColor}
             onChange={(nextValue) => onUpdateThemeField('launchButtonColor', nextValue)}
+            disabled={isReadOnly}
           />
           <RangeField
             label="Gallery title size"
@@ -2588,6 +2782,7 @@ function CollectionProfileCard({
             min={85}
             max={140}
             onChange={(nextValue) => onUpdateThemeField('galleryTitleScale', nextValue)}
+            disabled={isReadOnly}
           />
           <RangeField
             label="Intro text size"
@@ -2595,6 +2790,7 @@ function CollectionProfileCard({
             min={85}
             max={140}
             onChange={(nextValue) => onUpdateThemeField('galleryIntroScale', nextValue)}
+            disabled={isReadOnly}
           />
           <RangeField
             label="Card title size"
@@ -2602,6 +2798,7 @@ function CollectionProfileCard({
             min={85}
             max={140}
             onChange={(nextValue) => onUpdateThemeField('cardTitleScale', nextValue)}
+            disabled={isReadOnly}
           />
           <RangeField
             label="Card body size"
@@ -2609,6 +2806,7 @@ function CollectionProfileCard({
             min={85}
             max={140}
             onChange={(nextValue) => onUpdateThemeField('cardBodyScale', nextValue)}
+            disabled={isReadOnly}
           />
         </div>
       </section>

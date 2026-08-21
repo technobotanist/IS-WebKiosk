@@ -1147,6 +1147,22 @@ img {
   overflow: auto;
 }
 
+.viewer-alert {
+  border-color: rgba(199, 53, 35, 0.42);
+  background: linear-gradient(180deg, rgba(255, 250, 249, 0.99), rgba(250, 232, 228, 0.9));
+}
+
+.viewer-alert details {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.viewer-alert summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .url-chip {
   border-radius: 20px;
   padding: 0.9rem 1rem;

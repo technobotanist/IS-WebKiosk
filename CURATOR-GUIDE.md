@@ -55,7 +55,7 @@ One deployment can host more than one collection, and each has its own stable UR
 By default the app remembers edits in the browser on that machine. A public display kiosk usually wants the opposite: always show the latest published collection.
 
 - Add `?kiosk=1` to the URL to turn kiosk mode on (`?kiosk=0` turns it off).
-- In kiosk mode the machine always loads the published collection and does not save local edits.
+- In kiosk mode the machine always loads the published collection and collection editing controls are read-only.
 - The setting is remembered on that machine, so you only need to add it once.
 - A fleet-wide default can be set in `public/kiosk-config.json` with `"followRemote": true`.
 
@@ -67,19 +67,22 @@ A shortened link can point to that address, so a kiosk is configured by opening 
 
 ## Unlock The Editor
 
-There is no visible password screen.
+The editor entry point is hidden, but a PIN screen appears after the hold gesture.
 
-To unlock editing:
+To unlock the editor:
 
 1. In gallery view, press and hold the subtitle text above the gallery title.
 2. Hold for about 2 seconds.
-3. The app will switch to the editor and show an unlock countdown.
+3. Enter the configured curator PIN on the on-screen keypad.
+4. Select `Unlock Editor`. The app will switch to the editor and show an unlock countdown.
 
 Notes:
 
 - The editor unlock lasts 10 minutes.
 - Select `Relock` when you are done.
 - If the timer expires, the app returns to gallery mode automatically.
+- If a machine has no provisioned PIN, the same flow asks you to set and confirm one before unlocking.
+- On a kiosk with kiosk mode on, the editor opens read-only. Edit the published collection JSON, or open the device once with `?kiosk=0` before making local authoring changes.
 
 ## Studio Layout
 
@@ -107,6 +110,8 @@ Card rows show `Click to edit` or `Selected for editing` to indicate which card 
 5. Edit the card fields, including an optional preview image URL and the QR code checkbox for gallery cards.
 6. Use `Preview In Kiosk` from the `Gallery cards` panel or the card editor to test the live destination inside the kiosk frame.
 7. Use `Done Editing` to close the card editor.
+
+If kiosk mode is on, this workflow is available for review and preview only; collection editing controls are disabled so changes are not mistaken for saved edits.
 
 Default values for a new card:
 
@@ -145,12 +150,13 @@ Return hotkeys are the keys that send an open kiosk page back to the gallery hom
 
 - `Export` downloads the current collection as a JSON file.
 - `Import` loads a previously exported JSON collection.
-- `Restore Sample` replaces the current collection with the sample set.
+- `Redeploy Default` replaces the current collection with the published default collection.
+- `Discard Gallery` clears every card and leaves the gallery empty until you add cards or redeploy the default.
 
 Important:
 
-- Changes save automatically in this browser on this machine.
-- On a kiosk in kiosk mode, changes are not saved locally; edit the published collection JSON and redeploy instead.
+- Changes save automatically in this browser on this machine only when kiosk mode is off.
+- On a kiosk in kiosk mode, collection editing controls are read-only; edit the published collection JSON and redeploy instead.
 - Export the collection if you need a backup or want to move it to another workstation.
 
 ## What Gallery Mode Does

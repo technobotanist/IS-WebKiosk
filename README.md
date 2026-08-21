@@ -59,7 +59,7 @@ The default sample collection lives in `public/data/collection.json`. Additional
     "cardTitleScale": 100,
     "cardBodyScale": 100
   },
-  "idleTimeoutSeconds": 120,
+  "idleTimeoutSeconds": 240,
   "escapeHotkeys": ["Escape", "Control+Shift+H"],
   "entries": [
     {
@@ -96,7 +96,7 @@ A demo second collection ships at `public/data/sample-showcase.json`; load it wi
 By default the app is local-first: once a browser loads a collection, its own saved copy wins so curator edits persist. Public display kiosks usually want the opposite — always show the latest published collection.
 
 - `?kiosk=1` (or `?role=kiosk`) turns on follow-remote mode; `?kiosk=0` turns it off.
-- In follow-remote mode the published JSON is the source of truth: local storage never shadows it and local edits are not saved.
+- In follow-remote mode the published JSON is the source of truth: local storage never shadows it and collection editing controls are read-only.
 - The choice is remembered on the device, so you only pass the parameter once.
 - A fleet-wide default can be set in `public/kiosk-config.json` with `"followRemote": true`.
 - Precedence: URL parameter (remembered) > device setting > `kiosk-config.json` > off.
